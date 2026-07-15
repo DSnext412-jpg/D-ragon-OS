@@ -35,7 +35,7 @@ bool Application::Initialize(
         m_pWindow = std::make_unique<DragonOS::Window::Window>(
             hInstance,
             std::wstring{ Config::WindowClassName },
-            Config::WindowTitle,
+            std::wstring{ Config::WindowTitle },
             Config::DefaultWindowWidth,
             Config::DefaultWindowHeight);
 

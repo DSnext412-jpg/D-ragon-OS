@@ -45,7 +45,7 @@ public:
     Window(
         HINSTANCE        hInstance,
         std::wstring     className,
-        std::wstring_view title,
+        const std::wstring& title,
         int              width,
         int              height);
 

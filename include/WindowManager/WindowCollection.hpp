@@ -26,7 +26,7 @@ namespace DragonOS::WindowManager {
 class WindowCollection final {
 public:
     WindowCollection() noexcept = default;
-    ~WindowCollection() noexcept = default;
+    ~WindowCollection() noexcept;
 
     WindowCollection(const WindowCollection&)            = delete;
     WindowCollection& operator=(const WindowCollection&) = delete;

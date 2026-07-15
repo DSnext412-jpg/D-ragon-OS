@@ -40,7 +40,7 @@ namespace DragonOS::Core {
 class Application final {
 public:
     Application() = default;
-    ~Application() = default;
+    ~Application();
 
     Application(const Application&)            = delete;
     Application& operator=(const Application&) = delete;

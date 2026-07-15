@@ -12,6 +12,7 @@
 
 #include <Resources/Resource.hpp>
 
+#include <concepts>
 #include <memory>
 #include <type_traits>
 

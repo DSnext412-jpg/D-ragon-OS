@@ -20,12 +20,15 @@
  * a "redefinition; different exception specifications" linker error.
  *
  * @return Exit code returned to the operating system.
+ *
+ * @note  noexcept deliberately omitted — wWinMain is extern "C" and
+ *        MSVC's name decoration differs for noexcept C-linkage functions.
  */
 int WINAPI wWinMain(
     _In_     HINSTANCE hInstance,
     _In_opt_ HINSTANCE /*hPrevInstance*/,
     _In_     LPWSTR    /*lpCmdLine*/,
-    _In_     int       nCmdShow) noexcept
+    _In_     int       nCmdShow)
 {
     DragonOS::Core::Application app;
 

@@ -30,7 +30,13 @@ bool DesktopManager::Initialize() noexcept
     m_pScene = std::make_unique<DesktopScene>();
 
     m_pWindowManager = std::make_unique<WindowManager::WindowManager>();
-    m_pWindowManager->Initialize();
+
+    if (!m_pWindowManager->Initialize())
+    {
+        m_pWindowManager.reset();
+        m_pScene.reset();
+        return false;
+    }
 
     m_initialized = true;
     return true;

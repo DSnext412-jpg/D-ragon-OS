@@ -110,13 +110,11 @@ void DragonWindow::Render(Graphics::Renderer& renderer) noexcept
     auto* target = renderer.GetRenderTarget();
     if (!target) { return; }
 
-    // ── Resolve metrics from ThemeManager (fallback static defaults) ─────
-    const ThemeMetrics metrics = m_pThemeManager
-        ? m_pThemeManager->GetMetrics()
-        : ThemeMetrics{};
+    // ── Resolve metrics (all static constexpr — use class scope directly) ─
+    using TM = ThemeMetrics;
 
-    const float cornerRadius = metrics.WindowCornerRadius;
-    const float shadowOffset = metrics.WindowShadowOffset;
+    const float cornerRadius = TM::WindowCornerRadius;
+    const float shadowOffset = TM::WindowShadowOffset;
 
     // ── Resolve colours from ThemeManager ────────────────────────────────
     const auto resolve = [&](Theme::SemanticColor token) -> Graphics::Color
@@ -176,17 +174,17 @@ void DragonWindow::Render(Graphics::Renderer& renderer) noexcept
         auto* borderBrush = renderer.GetBrush(resolve(Theme::SemanticColor::WindowBorder));
         if (borderBrush)
         {
-            target->DrawRoundedRectangle(&bgRounded, borderBrush, metrics.WindowBorderThickness);
+            target->DrawRoundedRectangle(&bgRounded, borderBrush, TM::WindowBorderThickness);
         }
     }
 
     // ── Title text ────────────────────────────────────────────────────────
     {
         const D2D1_RECT_F titleRect = D2D1::RectF(
-            m_x + metrics.TitleTextPaddingX,
-            m_y + metrics.TitleTextPaddingY,
-            m_x + m_width - metrics.TitleTextPaddingX,
-            m_y + metrics.TitleBarHeight);
+            m_x + TM::TitleTextPaddingX,
+            m_y + TM::TitleTextPaddingY,
+            m_x + m_width - TM::TitleTextPaddingX,
+            m_y + TM::TitleBarHeight);
 
         renderer.DrawText(m_title, titleRect, resolve(Theme::SemanticColor::WindowTitle));
     }

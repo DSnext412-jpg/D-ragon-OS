@@ -1,0 +1,36 @@
+/**
+ * @file    main.cpp
+ * @brief   DragonOS bootstrap entry point.
+ *
+ * The sole responsibility of this file is to create the Application,
+ * initialise it, run the message loop, and perform a clean shutdown.
+ * No Win32 API calls appear here — all platform details are
+ * encapsulated in the Window and Application classes.
+ */
+
+#include <Core/Application.hpp>
+
+#include <cstdlib>
+
+/**
+ * @brief  Application entry point.
+ *
+ * @return Exit code returned to the operating system.
+ */
+int WINAPI WinMain(
+    _In_     HINSTANCE hInstance,
+    _In_opt_ HINSTANCE /*hPrevInstance*/,
+    _In_     LPSTR     /*lpCmdLine*/,
+    _In_     int       nCmdShow) noexcept
+{
+    DragonOS::Core::Application app;
+
+    if (!app.Initialize(hInstance, nCmdShow))
+    {
+        return EXIT_FAILURE;
+    }
+
+    const int exitCode = app.Run();
+    app.Shutdown();
+    return exitCode;
+}

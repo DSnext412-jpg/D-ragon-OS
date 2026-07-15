@@ -73,7 +73,8 @@ public:
     void BringToFront(DragonWindow* window) noexcept;
 
     /// @brief  Find the first window matching a title.
-    [[nodiscard]] DragonWindow* FindWindow(std::wstring_view title) noexcept;
+    /// @note  Named FindWindowByTitle to avoid Windows macro #define FindWindow FindWindowW.
+    [[nodiscard]] DragonWindow* FindWindowByTitle(std::wstring_view title) noexcept;
 
     /// @brief  Set the keyboard-focus window.
     void SetFocusedWindow(DragonWindow* window) noexcept;

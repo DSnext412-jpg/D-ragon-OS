@@ -94,7 +94,7 @@ void WindowManager::BringToFront(DragonWindow* window) noexcept
     m_collection.BringToFront(window);
 }
 
-DragonWindow* WindowManager::FindWindow(
+DragonWindow* WindowManager::FindWindowByTitle(
     std::wstring_view title) noexcept
 {
     return m_collection.Find(title);

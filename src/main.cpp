@@ -13,14 +13,18 @@
 #include <cstdlib>
 
 /**
- * @brief  Application entry point.
+ * @brief  Application entry point (wide-character version).
+ *
+ * The project defines UNICODE/_UNICODE, so the CRT's startup routine
+ * calls wWinMain (not WinMain).  Using wWinMain with LPWSTR avoids
+ * a "redefinition; different exception specifications" linker error.
  *
  * @return Exit code returned to the operating system.
  */
-int WINAPI WinMain(
+int WINAPI wWinMain(
     _In_     HINSTANCE hInstance,
     _In_opt_ HINSTANCE /*hPrevInstance*/,
-    _In_     LPSTR     /*lpCmdLine*/,
+    _In_     LPWSTR    /*lpCmdLine*/,
     _In_     int       nCmdShow) noexcept
 {
     DragonOS::Core::Application app;

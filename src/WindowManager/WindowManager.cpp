@@ -13,6 +13,8 @@ namespace DragonOS::WindowManager {
 //  Lifecycle
 // ============================================================================
 
+WindowManager::~WindowManager() noexcept = default;
+
 bool WindowManager::Initialize() noexcept
 {
     if (m_initialized) { return true; }

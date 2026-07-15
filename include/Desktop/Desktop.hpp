@@ -25,7 +25,7 @@ namespace DragonOS::Desktop {
 class Desktop final {
 public:
     Desktop();
-    ~Desktop();
+    ~Desktop() noexcept;
 
     Desktop(const Desktop&)            = delete;
     Desktop& operator=(const Desktop&) = delete;

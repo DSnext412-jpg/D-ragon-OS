@@ -9,12 +9,12 @@
 
 #pragma once
 
+#include <WindowManager/DragonWindow.hpp>
 #include <WindowManager/WindowCollection.hpp>
 
 #include <string_view>
 
 namespace DragonOS::Graphics { class Renderer; }
-namespace DragonOS::WindowManager { class DragonWindow; }
 
 namespace DragonOS::WindowManager {
 
@@ -31,7 +31,7 @@ namespace DragonOS::WindowManager {
 class WindowManager final {
 public:
     WindowManager() noexcept = default;
-    ~WindowManager() noexcept = default;
+    ~WindowManager() noexcept;
 
     WindowManager(const WindowManager&)            = delete;
     WindowManager& operator=(const WindowManager&) = delete;

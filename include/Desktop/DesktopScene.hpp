@@ -27,7 +27,7 @@ namespace DragonOS::Desktop {
 class DesktopScene final {
 public:
     DesktopScene();
-    ~DesktopScene();
+    ~DesktopScene() noexcept;
 
     DesktopScene(const DesktopScene&)            = delete;
     DesktopScene& operator=(const DesktopScene&) = delete;

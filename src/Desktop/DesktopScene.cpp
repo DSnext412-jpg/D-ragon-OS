@@ -18,7 +18,10 @@ DesktopScene::DesktopScene()
 {
 }
 
-DesktopScene::~DesktopScene() = default;
+DesktopScene::~DesktopScene() noexcept
+{
+    m_pDesktop.reset();
+}
 
 // ============================================================================
 //  Rendering

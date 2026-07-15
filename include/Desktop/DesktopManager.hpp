@@ -14,11 +14,12 @@
 
 #pragma once
 
+#include <WindowManager/WindowManager.hpp>
+#include <Desktop/DesktopScene.hpp>
+
 #include <memory>
 
 namespace DragonOS::Graphics { class Renderer; }
-namespace DragonOS::Desktop { class DesktopScene; }
-namespace DragonOS::WindowManager { class WindowManager; }
 
 namespace DragonOS::Desktop {
 

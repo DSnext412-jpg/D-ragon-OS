@@ -18,7 +18,10 @@ Desktop::Desktop()
 {
 }
 
-Desktop::~Desktop() = default;
+Desktop::~Desktop() noexcept
+{
+    m_pWallpaper.reset();
+}
 
 // ============================================================================
 //  Rendering

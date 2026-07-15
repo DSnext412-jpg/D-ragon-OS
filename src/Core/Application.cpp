@@ -15,7 +15,11 @@
 
 namespace DragonOS::Core {
 
-Application::~Application() = default;
+Application::~Application() noexcept
+{
+    m_pEngine.reset();
+    m_pWindow.reset();
+}
 
 // ============================================================================
 //  Initialize

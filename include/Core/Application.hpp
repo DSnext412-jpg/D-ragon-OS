@@ -12,8 +12,8 @@
 #include <Windows.h>
 #include <memory>
 
-namespace DragonOS::Engine { class Engine; }
-namespace DragonOS::Window  { class Window; }
+#include <Engine/Engine.hpp>
+#include <Window/Window.hpp>
 
 namespace DragonOS::Core {
 
@@ -40,7 +40,7 @@ namespace DragonOS::Core {
 class Application final {
 public:
     Application() = default;
-    ~Application();
+    ~Application() noexcept;
 
     Application(const Application&)            = delete;
     Application& operator=(const Application&) = delete;

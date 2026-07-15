@@ -75,7 +75,7 @@ public:
     [[nodiscard]] bool   Empty() const noexcept { return m_windows.empty(); }
 
     /// @brief  Remove every window from the collection.
-    void Clear() noexcept { m_windows.clear(); }
+    void Clear() noexcept;
 
 private:
     std::vector<std::unique_ptr<DragonWindow>> m_windows;

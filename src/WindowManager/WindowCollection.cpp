@@ -11,7 +11,15 @@
 
 namespace DragonOS::WindowManager {
 
-WindowCollection::~WindowCollection() noexcept = default;
+WindowCollection::~WindowCollection() noexcept
+{
+    Clear();
+}
+
+void WindowCollection::Clear() noexcept
+{
+    m_windows.clear();
+}
 
 // ============================================================================
 //  Window management

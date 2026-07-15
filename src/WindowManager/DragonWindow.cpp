@@ -111,7 +111,7 @@ void DragonWindow::Render(Graphics::Renderer& renderer) noexcept
     if (!target) { return; }
 
     // ── Resolve metrics (all static constexpr — use class scope directly) ─
-    using TM = ThemeMetrics;
+    using TM = Theme::ThemeMetrics;
 
     const float cornerRadius = TM::WindowCornerRadius;
     const float shadowOffset = TM::WindowShadowOffset;

@@ -1,1 +1,39 @@
 DragonOS/
+# ============================================================================
+#  DragonOS — .gitignore
+# ============================================================================
+
+# ── Build output ──────────────────────────────────────────────────────────────
+build*/
+out*/
+[Pp]ackages/
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.idea/
+.vs/
+*.suo
+*.user
+*.sln.docstates
+.vscode/
+*.swp
+*.swo
+
+# ── Compiler / Toolchain ──────────────────────────────────────────────────────
+*.obj
+*.lib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.log
+*.tlog
+*.ipch
+
+# ── CMake ─────────────────────────────────────────────────────────────────────
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+*.cmake
+!.dragonos.cmake

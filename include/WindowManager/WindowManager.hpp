@@ -91,6 +91,12 @@ public:
         return m_pHovered;
     }
 
+    /// @brief  Access the focused window (may be nullptr).
+    [[nodiscard]] DragonWindow* GetFocusedWindow() const noexcept
+    {
+        return m_pFocused;
+    }
+
     /// @brief  The region under the cursor on the hovered window.
     [[nodiscard]] Input::HitTestRegion GetHitRegion() const noexcept
     {

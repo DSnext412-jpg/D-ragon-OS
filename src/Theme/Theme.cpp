@@ -53,6 +53,25 @@ static ThemePalette CreateDarkPalette() noexcept
     // ── Utility ───────────────────────────────────────────────────────────
     p[SemanticColor::Transparent]            = ThemeColor::FromFloat(0.0f, 0.0f, 0.0f, 0.0f);
 
+    // ── Taskbar ───────────────────────────────────────────────────────────
+    p[SemanticColor::TaskbarBackground]      = ThemeColor::FromRGB(28, 32, 42);     // Dark slate
+    p[SemanticColor::TaskbarItemHover]       = ThemeColor::FromRGB(255, 255, 255, 20); // Subtle white overlay
+    p[SemanticColor::TaskbarItemActive]      = ThemeColor::FromRGB(58, 134, 255);   // Vivid blue (matching accent)
+    p[SemanticColor::StartButtonBackground]  = ThemeColor::FromRGB(58, 134, 255);   // Accent blue
+    p[SemanticColor::StartButtonHover]       = ThemeColor::FromRGB(96, 160, 255);   // Lighter blue
+    p[SemanticColor::StartButtonPressed]     = ThemeColor::FromRGB(30, 100, 220);   // Darker blue
+
+    // ── Start Menu ────────────────────────────────────────────────────────
+    p[SemanticColor::StartMenuBackground]    = ThemeColor::FromRGB(24, 28, 38);     // Dark slate (matches title bar)
+    p[SemanticColor::StartMenuItemHover]     = ThemeColor::FromRGB(255, 255, 255, 20); // Subtle white overlay
+
+    // ── Explorer ───────────────────────────────────────────────────────────
+    p[SemanticColor::ExplorerBackground]       = ThemeColor::FromRGB(32, 36, 46);     // Same as window background
+    p[SemanticColor::ExplorerItemHover]        = ThemeColor::FromRGB(255, 255, 255, 16); // Subtle white
+    p[SemanticColor::ExplorerItemSelected]     = ThemeColor::FromRGB(58, 134, 255, 60); // Blue tint
+    p[SemanticColor::ExplorerNavigationPane]   = ThemeColor::FromRGB(28, 32, 42);     // Slightly darker slate
+    p[SemanticColor::ExplorerToolbarBackground] = ThemeColor::FromRGB(36, 40, 50);    // Slightly lighter slate
+
     return p;
 }
 

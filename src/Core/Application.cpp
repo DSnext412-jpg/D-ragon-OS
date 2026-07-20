@@ -31,6 +31,12 @@ bool Application::Initialize(
 {
     try
     {
+        APP_LOG(L"Starting DragonOS initialisation");
+
+        // ── Set up high-resolution timer ──────────────────────────────────
+        ::QueryPerformanceFrequency(&m_perfFreq);
+        ::QueryPerformanceCounter(&m_prevTime);
+
         // ── Create the main window ─────────────────────────────────────────
         m_pWindow = std::make_unique<DragonOS::Window::Window>(
             hInstance,
@@ -38,6 +44,8 @@ bool Application::Initialize(
             std::wstring{ Config::WindowTitle },
             Config::DefaultWindowWidth,
             Config::DefaultWindowHeight);
+
+        APP_LOG(L"Window created successfully");
 
         // ── Create and wire the engine ──────────────────────────────────────
         m_pEngine = std::make_unique<DragonOS::Engine::Engine>();
@@ -52,6 +60,8 @@ bool Application::Initialize(
             return false;
         }
 
+        APP_LOG(L"Engine initialised successfully");
+
         // ── Wire the input manager to the window ────────────────────────────
         auto* inputMgr = m_pEngine->GetSystemManager()
                             .Find<DragonOS::Input::InputManager>();
@@ -65,6 +75,7 @@ bool Application::Initialize(
         m_pWindow->Show(nCmdShow);
         m_pWindow->Update();
 
+        APP_LOG(L"Initialisation complete — window shown");
         return true;
     }
     catch (const std::exception& ex)
@@ -78,7 +89,7 @@ bool Application::Initialize(
 }
 
 // ============================================================================
-//  Run — message loop
+//  Run — real-time message / render loop
 // ============================================================================
 
 int Application::Run() noexcept
@@ -88,28 +99,68 @@ int Application::Run() noexcept
         return EXIT_FAILURE;
     }
 
-    MSG msg{};
-    BOOL result = TRUE;
+    m_isRunning = true;
+    APP_LOG(L"Message loop started");
 
-    while ((result = ::GetMessageW(&msg, nullptr, 0, 0)) != 0)
+    MSG msg{};
+
+    while (m_isRunning)
     {
-        if (result == -1)
+        // ── 1. Process all pending Win32 messages (non-blocking) ─────────
+        while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            // Fatal error — return immediately.
-            return EXIT_FAILURE;
+            if (msg.message == WM_QUIT)
+            {
+                m_isRunning = false;
+                break;
+            }
+
+            ::TranslateMessage(&msg);
+            ::DispatchMessageW(&msg);
         }
 
-        ::TranslateMessage(&msg);
-        ::DispatchMessageW(&msg);
+        if (!m_isRunning) { break; }
 
-        // Advance per-frame state for all engine systems.
+        // ── 2. Calculate delta time ──────────────────────────────────────
+        LARGE_INTEGER currentTime{};
+        ::QueryPerformanceCounter(&currentTime);
+
+        const double delta = static_cast<double>(
+            currentTime.QuadPart - m_prevTime.QuadPart) / m_perfFreq.QuadPart;
+        m_prevTime = currentTime;
+
+        // Clamp delta to ~50 ms to prevent spiral-of-death on first frame
+        // or after a long stall (e.g. modal resize).
+        const float deltaTime = (delta > 0.05) ? 0.016f
+                                               : static_cast<float>(delta);
+
+        // ── 3. Update engine systems (always) ─────────────────────────────
         if (m_pEngine)
         {
-            m_pEngine->Update(0.0f);
+            m_pEngine->Update(deltaTime);
+        }
+
+        // ── 4. Render one frame (skip if minimised) ──────────────────────
+        if (m_pEngine && !m_pWindow->IsMinimized())
+        {
+            m_pEngine->Render();
+        }
+
+        // ── 5. Yield CPU when appropriate ─────────────────────────────────
+        if (m_pWindow->IsMinimized())
+        {
+            // Window is hidden — block until a message arrives.
+            ::WaitMessage();
+        }
+        else if (!m_pWindow->IsActive())
+        {
+            // Visible but not foreground — brief yield keeps CPU low while
+            // staying responsive for the next activation.
+            ::Sleep(1);
         }
     }
 
-    // msg.wParam contains the exit code from PostQuitMessage.
+    APP_LOG(L"Message loop exited");
     return static_cast<int>(msg.wParam);
 }
 
@@ -119,6 +170,8 @@ int Application::Run() noexcept
 
 void Application::Shutdown() noexcept
 {
+    APP_LOG(L"Shutting down DragonOS");
+
     // Shut down the engine before the window so systems can still
     // access window-owned resources during teardown (if needed).
     if (m_pEngine)
@@ -132,6 +185,8 @@ void Application::Shutdown() noexcept
         m_pWindow->Close();
         m_pWindow.reset();
     }
+
+    APP_LOG(L"Shutdown complete");
 }
 
 } // namespace DragonOS::Core

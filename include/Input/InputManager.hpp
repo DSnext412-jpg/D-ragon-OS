@@ -16,9 +16,11 @@
 
 #include <Engine/System.hpp>
 
+#include <Input/CursorManager.hpp>
 #include <Input/InputEvent.hpp>
 #include <Input/Keyboard.hpp>
 #include <Input/Mouse.hpp>
+#include <Input/MouseManager.hpp>
 
 #include <Windows.h>
 
@@ -89,6 +91,19 @@ public:
         WPARAM wParam,
         LPARAM lParam) noexcept;
 
+    /// @brief  Called when the mouse leaves the client area.
+    void OnMouseLeave() noexcept;
+
+    // ── Mouse manager access ──────────────────────────────────────────────
+
+    [[nodiscard]] MouseManager&   GetMouseManager()       noexcept { return m_mouseManager; }
+    [[nodiscard]] const MouseManager& GetMouseManager() const noexcept { return m_mouseManager; }
+
+    // ── Cursor manager access ─────────────────────────────────────────────
+
+    [[nodiscard]] CursorManager&  GetCursorManager()       noexcept { return m_cursorManager; }
+    [[nodiscard]] const CursorManager& GetCursorManager() const noexcept { return m_cursorManager; }
+
     // ── Device access ────────────────────────────────────────────────────
 
     [[nodiscard]] Mouse&          GetMouse()       noexcept { return m_mouse; }
@@ -134,6 +149,8 @@ private:
 
     // ── Data members ─────────────────────────────────────────────────────
 
+    MouseManager            m_mouseManager;
+    CursorManager           m_cursorManager;
     Mouse                   m_mouse;
     Keyboard                m_keyboard;
     std::vector<InputEvent> m_eventQueue;

@@ -93,8 +93,9 @@ private:
 
     const Theme::ThemeManager* m_pThemeManager{ nullptr };
 
-    float m_width{ 0.0f };
-    float m_height{ 0.0f };
+    float               m_width{ 0.0f };
+    float               m_height{ 0.0f };
+    std::uint32_t       m_lastTargetGeneration{ 0 };
 };
 
 } // namespace DragonOS::Desktop

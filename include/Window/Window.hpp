@@ -74,6 +74,20 @@ public:
     /// @brief  Retrieve the underlying HWND (nullptr if destroyed).
     [[nodiscard]] HWND Handle() const noexcept;
 
+    // ── State queries ────────────────────────────────────────────────────
+
+    /// @brief  Whether the window is currently minimised.
+    [[nodiscard]] bool IsMinimized() const noexcept { return m_isMinimized; }
+
+    /// @brief  Whether the window is the active foreground window.
+    [[nodiscard]] bool IsActive() const noexcept { return m_isActive; }
+
+    /// @brief  Client-area width in pixels.
+    [[nodiscard]] int Width()  const noexcept { return m_width; }
+
+    /// @brief  Client-area height in pixels.
+    [[nodiscard]] int Height() const noexcept { return m_height; }
+
     // ── Subsystem access ────────────────────────────────────────────────
 
     [[nodiscard]] Graphics::Renderer&         GetRenderer()       noexcept { return m_renderer; }
@@ -105,17 +119,38 @@ private:
         WPARAM wParam,
         LPARAM lParam) noexcept;
 
-    /// @brief  WM_CLOSE  — initiate window destruction.
+    /// @brief  WM_CLOSE        — initiate window destruction.
     void OnClose() noexcept;
 
-    /// @brief  WM_DESTROY — post WM_QUIT to the message queue.
+    /// @brief  WM_DESTROY      — post WM_QUIT to the message queue.
     void OnDestroy() noexcept;
 
-    /// @brief  WM_PAINT   — validate the client area.
+    /// @brief  WM_PAINT        — validate the client area.
     void OnPaint() noexcept;
 
-    /// @brief  WM_SIZE    — respond to size changes.
-    void OnResize(LPARAM lParam) noexcept;
+    /// @brief  WM_SIZE         — respond to size / minimise / maximise.
+    void OnResize(WPARAM wParam, LPARAM lParam) noexcept;
+
+    /// @brief  WM_MOVE         — respond to window movement.
+    void OnMove(LPARAM lParam) noexcept;
+
+    /// @brief  WM_ACTIVATE     — respond to activation state.
+    void OnActivate(WPARAM wParam) noexcept;
+
+    /// @brief  WM_SETFOCUS     — window gained keyboard focus.
+    void OnSetFocus() noexcept;
+
+    /// @brief  WM_KILLFOCUS   — window lost keyboard focus.
+    void OnKillFocus() noexcept;
+
+    /// @brief  WM_DPICHANGED   — respond to DPI change.
+    void OnDpiChanged(WPARAM wParam, LPARAM lParam) noexcept;
+
+    /// @brief  WM_MOUSELEAVE  — cursor left the client area.
+    void OnMouseLeave() noexcept;
+
+    /// @brief  WM_SETCURSOR   — set cursor for the current hit-test area.
+    LRESULT OnSetCursor(HWND hWnd, WPARAM wParam, LPARAM lParam) noexcept;
 
     // ── Data members ───────────────────────────────────────────────────
 
@@ -124,6 +159,8 @@ private:
     std::wstring               m_className;
     int                        m_width{ 0 };
     int                        m_height{ 0 };
+    bool                       m_isMinimized{ false };
+    bool                       m_isActive{ false };
     Graphics::Renderer         m_renderer;
     Desktop::DesktopManager    m_desktopManager;
     Engine::Engine*            m_pEngine{ nullptr };

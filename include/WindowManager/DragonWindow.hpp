@@ -11,13 +11,16 @@
 #pragma once
 
 #include <Graphics/Color.hpp>
+#include <Input/HitTest.hpp>
 #include <WindowManager/WindowStyle.hpp>
 #include <WindowManager/WindowState.hpp>
 
+#include <cstdint>
 #include <string>
 
 namespace DragonOS::Graphics { class Renderer; }
 namespace DragonOS::Theme   { class ThemeManager; }
+namespace DragonOS::Input   { struct UIEvent; }
 
 namespace DragonOS::WindowManager {
 
@@ -78,10 +81,38 @@ public:
     /// @brief  Resize the window.
     void Resize(float w, float h) noexcept;
 
+    /// @brief  The bounding rectangle of the window in DIPs.
+    [[nodiscard]] Input::Bounds GetBounds() const noexcept
+    {
+        return { m_x, m_y, m_width, m_height };
+    }
+
+    /**
+     * @brief  Hit-test the window at the given client point.
+     * @return The region under the point, or HitTestRegion::None.
+     */
+    [[nodiscard]] Input::HitTestRegion HitTest(float px, float py) const noexcept;
+
     // ── Focus ────────────────────────────────────────────────────────────
 
     /// @brief  Give this window keyboard / input focus.
     void Focus() noexcept;
+
+    /// @brief  Remove keyboard / input focus.
+    void FocusLost() noexcept;
+
+    // ── Mouse state (updated by WindowManager each frame) ─────────────────
+
+    void SetHovered(bool hovered) noexcept { m_hovered = hovered; }
+    void SetPressed(bool pressed) noexcept { m_pressed = pressed; }
+
+    [[nodiscard]] bool IsHovered() const noexcept { return m_hovered; }
+    [[nodiscard]] bool IsPressed() const noexcept { return m_pressed; }
+    [[nodiscard]] bool WasEnteredThisFrame()  const noexcept { return m_enteredThisFrame; }
+    [[nodiscard]] bool WasExitedThisFrame()   const noexcept { return m_exitedThisFrame; }
+
+    void SetEnteredThisFrame(bool v) noexcept { m_enteredThisFrame = v; }
+    void SetExitedThisFrame(bool v)  noexcept { m_exitedThisFrame  = v; }
 
     // ── Rendering ────────────────────────────────────────────────────────
 
@@ -111,20 +142,58 @@ public:
     void SetZOrder(int order) noexcept { m_zOrder = order; }
     void SetStyle(WindowStyle style) noexcept { m_style = style; }
 
-    // ── Future interaction stubs ─────────────────────────────────────────
-    // int  HitTest(float px, float py) const;        // TODO
-    // void BeginDrag(float px, float py);            // TODO
-    // void BeginResize(int edge, float px, float py); // TODO
-    // void SnapToEdge(int edge);                     // TODO
-    // void DockTo(DragonWindow& target);             // TODO
-    // void AnimateTo(float x, float y, float w, float h, float duration); // TODO
+    // ── Control button state (updated by WindowManager) ─────────────────────
+
+    void SetActiveControlRegion(Input::HitTestRegion region) noexcept
+    {
+        m_activeControlRegion = region;
+    }
+
+    [[nodiscard]] Input::HitTestRegion GetActiveControlRegion() const noexcept
+    {
+        return m_activeControlRegion;
+    }
+
+    void SetPressedControlRegion(Input::HitTestRegion region) noexcept
+    {
+        m_pressedControlRegion = region;
+    }
+
+    [[nodiscard]] Input::HitTestRegion GetPressedControlRegion() const noexcept
+    {
+        return m_pressedControlRegion;
+    }
+
+    // ── Restore geometry (for maximize / minimize animations) ──────────────
+
+    void SetRestoreGeometry(float x, float y, float w, float h) noexcept
+    {
+        m_restoreX = x; m_restoreY = y; m_restoreW = w; m_restoreH = h;
+    }
+
+    [[nodiscard]] float GetRestoreX() const noexcept { return m_restoreX; }
+    [[nodiscard]] float GetRestoreY() const noexcept { return m_restoreY; }
+    [[nodiscard]] float GetRestoreW() const noexcept { return m_restoreW; }
+    [[nodiscard]] float GetRestoreH() const noexcept { return m_restoreH; }
+
+    static constexpr float MinWindowWidth  = 200.0f;
+    static constexpr float MinWindowHeight = 100.0f;
 
     // ── Theme integration ───────────────────────────────────────────────
 
     /// @brief  Attach a ThemeManager to drive all visual properties.
     void SetThemeManager(const Theme::ThemeManager& themeManager) noexcept;
 
+    /// @brief  Unique identifier for this window.
+    [[nodiscard]] uint64_t GetId() const noexcept { return m_id; }
+
 private:
+    static uint64_t NextId() noexcept
+    {
+        static uint64_t s_next = 1;
+        return s_next++;
+    }
+
     std::wstring  m_title;
     float         m_x;
     float         m_y;
@@ -135,6 +204,21 @@ private:
     int           m_zOrder{ 0 };
     WindowState   m_state{ WindowState::Normal };
     WindowStyle   m_style{ WindowStyle::Resizable | WindowStyle::Closable | WindowStyle::Movable };
+    uint64_t      m_id{ NextId() };
+
+    // ── Mouse-interaction state (set by WindowManager each frame) ────────
+    bool          m_hovered{ false };
+    bool          m_pressed{ false };
+    bool          m_enteredThisFrame{ false };
+    bool          m_exitedThisFrame{ false };
+
+    // ── Control button interaction state ─────────────────────────────────
+    Input::HitTestRegion m_activeControlRegion{ Input::HitTestRegion::None };
+    Input::HitTestRegion m_pressedControlRegion{ Input::HitTestRegion::None };
+
+    // ── Restore geometry (before maximize / minimize) ────────────────────
+    float m_restoreX{ 0.0f }, m_restoreY{ 0.0f };
+    float m_restoreW{ 0.0f }, m_restoreH{ 0.0f };
 
     const Theme::ThemeManager* m_pThemeManager{ nullptr };
 };

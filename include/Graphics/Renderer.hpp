@@ -17,6 +17,7 @@
 #include <dwrite.h>
 #include <wincodec.h>
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -107,6 +108,14 @@ public:
     /// @return The HWND render target, or nullptr if not initialised.
     [[nodiscard]] ID2D1HwndRenderTarget* GetRenderTarget() const noexcept;
 
+    /// @brief  Generation counter bumped each time the render target is
+    ///         recreated.  Consumers should check this and recreate any
+    ///         resources tied to the old target.
+    [[nodiscard]] std::uint32_t GetTargetGeneration() const noexcept
+    {
+        return m_targetGeneration;
+    }
+
     /// @brief  Replace the default text format (font family + size).
     /// @param family  Font family name (e.g. L"Segoe UI").
     /// @param size    Font size in DIPs.
@@ -120,6 +129,10 @@ private:
     IDWriteFactory*      m_pDWriteFactory{ nullptr };
     IWICImagingFactory*  m_pWICFactory{ nullptr };
     IDWriteTextFormat*   m_pTextFormat{ nullptr };
+
+    // ── HWND cache (needed for target recreation on device loss) ───────
+
+    HWND                 m_hwnd{ nullptr };
 
     // ── Render target ──────────────────────────────────────────────────
 
@@ -138,6 +151,11 @@ private:
 
     std::wstring m_fontFamily{ L"Segoe UI" };
     float        m_fontSize{ 14.0f };
+
+    // ── Generation counter (incremented every time the render target
+    //     is recreated; consumers can detect stale resources). ──────────
+
+    std::uint32_t m_targetGeneration{ 0 };
 
     // ── State ──────────────────────────────────────────────────────────
 

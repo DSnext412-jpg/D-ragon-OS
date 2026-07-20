@@ -63,7 +63,10 @@ bool Renderer::Initialize(HWND hwnd) noexcept
 
     if (FAILED(hr)) { m_pTextFormat = nullptr; }   // non-fatal
 
-    // ── 6. HWND render target ──────────────────────────────────────────────
+    // ── 6. Cache HWND for later target recreation ──────────────────────────
+    m_hwnd = hwnd;
+
+    // ── 7. HWND render target ──────────────────────────────────────────────
     RECT rc{};
     ::GetClientRect(hwnd, &rc);
 
@@ -100,6 +103,9 @@ void Renderer::Shutdown() noexcept
     if (m_pDWriteFactory){ m_pDWriteFactory->Release(); m_pDWriteFactory = nullptr; }
     if (m_pD2DFactory)   { m_pD2DFactory->Release();    m_pD2DFactory   = nullptr; }
 
+    // ── HWND cache ─────────────────────────────────────────────────────────
+    m_hwnd = nullptr;
+
     // ── COM ────────────────────────────────────────────────────────────────
     ::CoUninitialize();
 
@@ -112,7 +118,25 @@ void Renderer::Resize(UINT width, UINT height) noexcept
 
     if (width == 0 || height == 0) { return; }
 
-    m_renderTarget.Resize(D2D1::SizeU(width, height));
+    const HRESULT hr = m_renderTarget.Resize(D2D1::SizeU(width, height));
+
+    if (hr == D2DERR_RECREATE_TARGET)
+    {
+        // Target was lost — recreate via the same path as EndFrame.
+        m_brushCache.clear();
+        m_renderTarget.Release();
+
+        if (m_hwnd && m_pD2DFactory)
+        {
+            if (m_renderTarget.Create(
+                    m_pD2DFactory,
+                    m_hwnd,
+                    D2D1::SizeU(width, height)))
+            {
+                ++m_targetGeneration;
+            }
+        }
+    }
 }
 
 // ============================================================================
@@ -133,10 +157,26 @@ void Renderer::EndFrame() noexcept
 
     if (hr == D2DERR_RECREATE_TARGET)
     {
-        // The Direct3D device was lost — the render target must be
-        // recreated.  For the skeleton we simply discard it; a full
-        // implementation would re-create from the factory + HWND.
+        // The Direct3D device was lost — release the old target and
+        // all cached brushes (they are tied to the target), then
+        // recreate from the factory + cached HWND.
+        m_brushCache.clear();
         m_renderTarget.Release();
+
+        if (m_hwnd && m_pD2DFactory)
+        {
+            RECT rc{};
+            ::GetClientRect(m_hwnd, &rc);
+            if (m_renderTarget.Create(
+                    m_pD2DFactory,
+                    m_hwnd,
+                    D2D1::SizeU(
+                        static_cast<UINT32>(rc.right - rc.left),
+                        static_cast<UINT32>(rc.bottom - rc.top))))
+            {
+                ++m_targetGeneration;
+            }
+        }
     }
 }
 

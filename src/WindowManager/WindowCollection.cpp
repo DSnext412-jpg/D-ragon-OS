@@ -80,11 +80,49 @@ void WindowCollection::BringToFront(DragonWindow* window) noexcept
     }
 }
 
+void WindowCollection::SendToBack(DragonWindow* window) noexcept
+{
+    if (!window || m_windows.size() < 2) { return; }
+
+    const auto it = std::find_if(
+        m_windows.begin(), m_windows.end(),
+        [window](const auto& ptr) { return ptr.get() == window; });
+
+    if (it == m_windows.end()) { return; }
+
+    auto ptr = std::move(*it);
+    m_windows.erase(it);
+    m_windows.insert(m_windows.begin(), std::move(ptr));
+
+    for (size_t i = 0; i < m_windows.size(); ++i)
+    {
+        m_windows[i]->SetZOrder(static_cast<int>(i));
+    }
+}
+
 DragonWindow* WindowCollection::Find(std::wstring_view title) noexcept
 {
     for (auto& w : m_windows)
     {
         if (w->GetTitle() == title) { return w.get(); }
+    }
+    return nullptr;
+}
+
+// ============================================================================
+//  Hit testing
+// ============================================================================
+
+DragonWindow* WindowCollection::HitTest(float px, float py) noexcept
+{
+    // Iterate front-to-back (the last window in the vector is top-most).
+    for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it)
+    {
+        auto* wnd = it->get();
+        if (wnd->HitTest(px, py) != Input::HitTestRegion::None)
+        {
+            return wnd;
+        }
     }
     return nullptr;
 }

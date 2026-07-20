@@ -10,10 +10,28 @@
 #pragma once
 
 #include <Windows.h>
+#include <cstdint>
 #include <memory>
 
 #include <Engine/Engine.hpp>
 #include <Window/Window.hpp>
+
+// ── Debug logging (compiled out in Release builds) ──────────────────────────
+
+#ifdef _DEBUG
+#define APP_LOG(msg)  ::OutputDebugStringW(L"[DragonOS] " msg L"\n")
+#define APP_LOGF(...)                                                         \
+    do {                                                                      \
+        wchar_t _buf[512];                                                    \
+        ::swprintf_s(_buf, __VA_ARGS__);                                      \
+        ::OutputDebugStringW(L"[DragonOS] ");                                 \
+        ::OutputDebugStringW(_buf);                                           \
+        ::OutputDebugStringW(L"\n");                                          \
+    } while (false)
+#else
+#define APP_LOG(msg)  ((void)0)
+#define APP_LOGF(...) ((void)0)
+#endif
 
 namespace DragonOS::Core {
 
@@ -77,6 +95,13 @@ public:
 private:
     std::unique_ptr<DragonOS::Window::Window> m_pWindow;
     std::unique_ptr<DragonOS::Engine::Engine> m_pEngine;
+
+    // ── Loop state ──────────────────────────────────────────────────────
+    bool   m_isRunning{ false };
+
+    // ── High-resolution timer ───────────────────────────────────────────
+    LARGE_INTEGER m_perfFreq{};
+    LARGE_INTEGER m_prevTime{};
 };
 
 } // namespace DragonOS::Core

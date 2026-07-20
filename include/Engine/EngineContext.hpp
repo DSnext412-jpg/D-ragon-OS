@@ -10,6 +10,7 @@
 #pragma once
 
 namespace DragonOS::Graphics { class Renderer; }
+namespace DragonOS::Input   { class InputManager; }
 
 #include <Theme/ThemeManager.hpp>
 
@@ -74,9 +75,24 @@ public:
         return m_pThemeManager->GetCurrentTheme();
     }
 
+    // ── Input ──────────────────────────────────────────────────────────────
+
+    /// @brief  Set the active InputManager (called during engine init).
+    void SetInputManager(Input::InputManager& inputManager) noexcept
+    {
+        m_pInputManager = &inputManager;
+    }
+
+    /// @brief  Retrieve the active InputManager, or nullptr.
+    [[nodiscard]] Input::InputManager* GetInputManager() const noexcept
+    {
+        return m_pInputManager;
+    }
+
 private:
     Graphics::Renderer*   m_pRenderer{ nullptr };
     Theme::ThemeManager*  m_pThemeManager{ nullptr };
+    Input::InputManager*  m_pInputManager{ nullptr };
     float                 m_viewportWidth{ 0.0f };
     float                 m_viewportHeight{ 0.0f };
 };

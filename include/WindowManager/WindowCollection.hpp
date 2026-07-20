@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <Input/HitTest.hpp>
+
 #include <memory>
 #include <string_view>
 #include <vector>
@@ -50,11 +52,24 @@ public:
     /// @brief  Move a window to the top of the Z-order.
     void BringToFront(DragonWindow* window) noexcept;
 
+    /// @brief  Move a window to the bottom of the Z-order.
+    void SendToBack(DragonWindow* window) noexcept;
+
     /**
      * @brief  Find a window by title (first match).
      * @return Pointer, or nullptr if not found.
      */
     [[nodiscard]] DragonWindow* Find(std::wstring_view title) noexcept;
+
+    // ── Hit testing ────────────────────────────────────────────────────────
+
+    /**
+     * @brief  Find the top-most visible window at @p px, @p py.
+     * @return Window pointer, or nullptr if nothing was hit.
+     *
+     * Iterates in reverse (front-to-back) so the topmost match wins.
+     */
+    [[nodiscard]] DragonWindow* HitTest(float px, float py) noexcept;
 
     // ── Batch operations ──────────────────────────────────────────────────
 

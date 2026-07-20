@@ -101,11 +101,14 @@ void Wallpaper::Render(
 
     if (m_type == WallpaperType::Gradient)
     {
-        // ── Lazy resource creation ───────────────────────────────────────
-        if (!m_pGradientBrush)
+        // ── Lazy resource creation / recreation after device loss ────────
+        const std::uint32_t gen = renderer.GetTargetGeneration();
+        if (!m_pGradientBrush || gen != m_lastTargetGeneration)
         {
+            ReleaseResources();
             m_width  = width;
             m_height = height;
+            m_lastTargetGeneration = gen;
             CreateGradientResources(renderer);
         }
 

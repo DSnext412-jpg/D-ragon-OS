@@ -12,8 +12,10 @@
 #include <Engine/System.hpp>
 #include <Engine/SystemManager.hpp>
 
+#include <Animation/AnimationManager.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Desktop/DesktopManager.hpp>
+#include <Input/DebugOverlay.hpp>
 #include <Input/InputManager.hpp>
 #include <Theme/ThemeManager.hpp>
 #include <WindowManager/WindowManager.hpp>
@@ -155,13 +157,26 @@ bool Engine::Initialize(
     // ── Populate context ─────────────────────────────────────────────────
     m_pContext->SetRenderer(renderer);
 
-    // ── Register systems (order: theme → background → input → windows) ──
+    // ── Register systems (order: theme → anim → background → input → windows) ──
     auto* themeMgr = m_pSystemManager->Register<Theme::ThemeManager>();
     m_pContext->SetThemeManager(*themeMgr);
 
+    auto* animMgr = m_pSystemManager->Register<Animation::AnimationManager>();
+
     m_pSystemManager->Register<DesktopSystem>(desktopManager);
-    m_pSystemManager->Register<Input::InputManager>();
+    auto* inputMgr = m_pSystemManager->Register<Input::InputManager>();
+    m_pContext->SetInputManager(*inputMgr);
+
     m_pSystemManager->Register<WindowManagerSystem>(windowManager);
+
+    // ── Wire InputManager + AnimationManager to WindowManager ─────────────
+    windowManager.SetMouseManager(inputMgr->GetMouseManager());
+    windowManager.SetAnimationManager(*animMgr);
+
+    // ── Register debug overlay (last, so it renders on top) ──────────────
+    auto* debugOverlay = m_pSystemManager->Register<Input::DebugOverlay>();
+    debugOverlay->SetInputManager(*inputMgr);
+    debugOverlay->SetWindowManager(windowManager);
 
     // ── Initialise all systems ───────────────────────────────────────────
     m_pSystemManager->InitializeAll(*m_pContext);

@@ -19,6 +19,7 @@ void InputManager::Update(float /*deltaTime*/) noexcept
     // Compute pressed / released / held from the raw state transitions
     // that occurred during the previous message-batch.
     m_mouse.Update();
+    m_mouseManager.Update();
     m_keyboard.Update();
 
     // The event queue has been available for reading during this Update
@@ -105,6 +106,7 @@ void InputManager::HandleMouseMessage(
     {
     case WM_MOUSEMOVE:
         m_mouse.OnMove(clientX, clientY);
+        m_mouseManager.OnMove(clientX, clientY);
         PushMoveEvent(clientX, clientY);
         return;
 
@@ -116,6 +118,7 @@ void InputManager::HandleMouseMessage(
     case WM_LBUTTONUP:
         btn = MouseButton::Left;
         m_mouse.OnButtonUp(btn);
+        m_mouseManager.OnButtonUp(btn);
         PushButtonEvent(EventType::MouseUp, btn, clientX, clientY);
         return;
 
@@ -127,6 +130,7 @@ void InputManager::HandleMouseMessage(
     case WM_RBUTTONUP:
         btn = MouseButton::Right;
         m_mouse.OnButtonUp(btn);
+        m_mouseManager.OnButtonUp(btn);
         PushButtonEvent(EventType::MouseUp, btn, clientX, clientY);
         return;
 
@@ -138,6 +142,7 @@ void InputManager::HandleMouseMessage(
     case WM_MBUTTONUP:
         btn = MouseButton::Middle;
         m_mouse.OnButtonUp(btn);
+        m_mouseManager.OnButtonUp(btn);
         PushButtonEvent(EventType::MouseUp, btn, clientX, clientY);
         return;
 
@@ -153,6 +158,7 @@ void InputManager::HandleMouseMessage(
         if (uMsg == WM_XBUTTONUP)
         {
             m_mouse.OnButtonUp(btn);
+            m_mouseManager.OnButtonUp(btn);
             PushButtonEvent(EventType::MouseUp, btn, clientX, clientY);
             return;
         }
@@ -163,6 +169,7 @@ void InputManager::HandleMouseMessage(
         {
             const float delta = static_cast<SHORT>(HIWORD(wParam));
             m_mouse.OnWheel(delta);
+            m_mouseManager.OnWheel(delta);
             PushWheelEvent(delta);
         }
         return;
@@ -182,11 +189,13 @@ void InputManager::HandleMouseMessage(
     if (isDblClick)
     {
         m_mouse.OnDoubleClick(btn);
+        m_mouseManager.OnDoubleClick(btn);
         PushButtonEvent(EventType::MouseDoubleClick, btn, clientX, clientY);
     }
     else
     {
         m_mouse.OnButtonDown(btn);
+        m_mouseManager.OnButtonDown(btn);
     }
 
     PushButtonEvent(EventType::MouseDown, btn, clientX, clientY);
@@ -195,6 +204,11 @@ void InputManager::HandleMouseMessage(
 // ============================================================================
 //  Keyboard message handler
 // ============================================================================
+
+void InputManager::OnMouseLeave() noexcept
+{
+    m_mouseManager.OnLeave();
+}
 
 void InputManager::HandleKeyMessage(
     UINT   uMsg,

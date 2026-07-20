@@ -16,6 +16,23 @@
 #include <stdexcept>
 #include <string>
 
+// ── Debug logging (compiled out in Release builds) ──────────────────────────
+
+#ifdef _DEBUG
+#define WND_LOG(msg)  ::OutputDebugStringW(L"[DragonOS] " msg L"\n")
+#define WND_LOGF(...)                                                         \
+    do {                                                                      \
+        wchar_t _buf[512];                                                    \
+        ::swprintf_s(_buf, __VA_ARGS__);                                      \
+        ::OutputDebugStringW(L"[DragonOS] ");                                 \
+        ::OutputDebugStringW(_buf);                                           \
+        ::OutputDebugStringW(L"\n");                                          \
+    } while (false)
+#else
+#define WND_LOG(msg)  ((void)0)
+#define WND_LOGF(...) ((void)0)
+#endif
+
 namespace DragonOS::Window {
 
 namespace {
@@ -288,13 +305,46 @@ LRESULT Window::HandleMessage(
     switch (uMsg)
     {
     // ── Core window messages ─────────────────────────────────────────────
-    case WM_CLOSE:   OnClose();   return 0;
-    case WM_DESTROY: OnDestroy(); return 0;
-    case WM_PAINT:   OnPaint();   return 0;
-    case WM_SIZE:    OnResize(lParam); return 0;
+    case WM_CLOSE:       OnClose();                                return 0;
+    case WM_DESTROY:     OnDestroy();                              return 0;
+    case WM_PAINT:       OnPaint();                                return 0;
+    case WM_SIZE:        OnResize(wParam, lParam);                 return 0;
+    case WM_MOVE:        OnMove(lParam);
+                         return ::DefWindowProcW(m_hWnd, uMsg, wParam, lParam);
+    case WM_ACTIVATE:    OnActivate(wParam);
+                         return ::DefWindowProcW(m_hWnd, uMsg, wParam, lParam);
+    case WM_SETFOCUS:    OnSetFocus();
+                         return ::DefWindowProcW(m_hWnd, uMsg, wParam, lParam);
+    case WM_KILLFOCUS:   OnKillFocus();
+                         return ::DefWindowProcW(m_hWnd, uMsg, wParam, lParam);
+    // WM_DPICHANGED: the suggested rect in lParam must be applied
+    // explicitly; DefWindowProcW does not do it automatically.
+    case WM_DPICHANGED:  OnDpiChanged(wParam, lParam);           return 0;
+
+    // ── Mouse tracking ───────────────────────────────────────────────────
+    case WM_MOUSELEAVE:  OnMouseLeave();                          return 0;
+
+    // ── Cursor routing ───────────────────────────────────────────────────
+    case WM_SETCURSOR:   return OnSetCursor(m_hWnd, wParam, lParam);
 
     // ── Input messages → forwarded to InputManager ──────────────────────
     case WM_MOUSEMOVE:
+    {
+        // Request mouse-leave notification so we know when the cursor
+        // exits the client area (enables hover-exit detection).
+        TRACKMOUSEEVENT tme{};
+        tme.cbSize    = sizeof(tme);
+        tme.dwFlags   = TME_LEAVE;
+        tme.hwndTrack = m_hWnd;
+        ::TrackMouseEvent(&tme);
+
+        if (m_pInputManager)
+        {
+            m_pInputManager->HandleWin32Message(uMsg, wParam, lParam);
+        }
+        return 0;
+    }
+
     case WM_LBUTTONDOWN: case WM_LBUTTONUP: case WM_LBUTTONDBLCLK:
     case WM_RBUTTONDOWN: case WM_RBUTTONUP: case WM_RBUTTONDBLCLK:
     case WM_MBUTTONDOWN: case WM_MBUTTONUP: case WM_MBUTTONDBLCLK:
@@ -342,25 +392,115 @@ void Window::OnPaint() noexcept
     ::EndPaint(m_hWnd, &ps);
 }
 
-void Window::OnResize(LPARAM lParam) noexcept
+void Window::OnResize(WPARAM wParam, LPARAM lParam) noexcept
 {
     const UINT cx = LOWORD(lParam);
     const UINT cy = HIWORD(lParam);
 
-    if (cx > 0 && cy > 0)
+    // ── Track minimise / restore state ──────────────────────────────────────
+    switch (wParam)
     {
-        m_renderer.Resize(cx, cy);
+    case SIZE_MINIMIZED:
+        m_isMinimized = true;
+        WND_LOG(L"Window minimised");
+        break;
 
-        if (m_pEngine)
+    case SIZE_MAXIMIZED:
+    case SIZE_RESTORED:
+    {
+        const bool wasMinimized = m_isMinimized;
+        m_isMinimized = false;
+
+        if (cx > 0 && cy > 0)
         {
-            m_pEngine->Resize(
-                static_cast<float>(cx),
-                static_cast<float>(cy));
+            m_renderer.Resize(cx, cy);
+
+            if (m_pEngine)
+            {
+                m_pEngine->Resize(
+                    static_cast<float>(cx),
+                    static_cast<float>(cy));
+            }
+
+            m_width  = cx;
+            m_height = cy;
         }
 
-        m_width  = cx;
-        m_height = cy;
+        if (wasMinimized)
+        {
+            WND_LOGF(L"Window restored (%s)",
+                     (wParam == SIZE_MAXIMIZED) ? L"maximised" : L"normal");
+            // Force a redraw after restore.
+            ::InvalidateRect(m_hWnd, nullptr, FALSE);
+        }
+        break;
     }
+    }
+}
+
+void Window::OnMove(LPARAM lParam) noexcept
+{
+    const auto x = static_cast<int>(static_cast<short>(LOWORD(lParam)));
+    const auto y = static_cast<int>(static_cast<short>(HIWORD(lParam)));
+    WND_LOGF(L"Window moved to (%d, %d)", x, y);
+    (void)x; (void)y;
+}
+
+void Window::OnActivate(WPARAM wParam) noexcept
+{
+    const bool active = (LOWORD(wParam) != WA_INACTIVE);
+    m_isActive = active;
+
+    WND_LOGF(L"Window %s", active ? L"activated" : L"deactivated");
+}
+
+void Window::OnSetFocus() noexcept
+{
+    WND_LOG(L"Window gained focus");
+}
+
+void Window::OnKillFocus() noexcept
+{
+    WND_LOG(L"Window lost focus");
+}
+
+void Window::OnDpiChanged(WPARAM wParam, LPARAM lParam) noexcept
+{
+    const auto dpi = HIWORD(wParam);
+    WND_LOGF(L"DPI changed to %d", dpi);
+    (void)dpi;
+
+    auto* rect = reinterpret_cast<RECT*>(lParam);
+    ::SetWindowPos(m_hWnd, nullptr,
+                   rect->left, rect->top,
+                   rect->right - rect->left,
+                   rect->bottom - rect->top,
+                   SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+void Window::OnMouseLeave() noexcept
+{
+    if (m_pInputManager)
+    {
+        m_pInputManager->OnMouseLeave();
+    }
+}
+
+LRESULT Window::OnSetCursor(HWND hWnd, WPARAM wParam, LPARAM lParam) noexcept
+{
+    // Allow the InputManager's CursorManager to control the cursor.
+    // We pass through to DefWindowProcW for default cursor handling
+    // when not in the client area (HTNOWHERE, etc.).
+    if (LOWORD(lParam) == HTCLIENT)
+    {
+        if (m_pInputManager)
+        {
+            m_pInputManager->GetCursorManager().Apply();
+        }
+        return TRUE;
+    }
+
+    return ::DefWindowProcW(hWnd, WM_SETCURSOR, wParam, lParam);
 }
 
 } // namespace DragonOS::Window

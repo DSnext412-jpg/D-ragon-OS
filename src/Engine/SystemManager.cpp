@@ -44,7 +44,7 @@ void SystemManager::InitializeAll(EngineContext& ctx) noexcept
 {
     for (auto& s : m_systems)
     {
-        if (s) { s->Initialize(ctx); }
+        if (s) { [[maybe_unused]] const bool ok = s->Initialize(ctx); }
     }
 }
 

@@ -340,13 +340,8 @@ Cross Platform Support
 
 ### **Build the Desktop. Build the Future.**
 
-<img src="https://github-readme-stats.vercel.app/api?username=DSnext412-jpg&show_icons=true&theme=transparent&hide_border=true"/>
-
-<img src="https://streak-stats.demolab.com?user=DSnext412-jpg&theme=transparent&hide_border=true"/>
 
 ---
-
-**Created with ❤️ by Dipak Sonawane**
 
 *"Every operating system starts with a single window."*
 

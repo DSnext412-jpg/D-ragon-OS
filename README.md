@@ -338,8 +338,7 @@ Cross Platform Support
 
 ## 「 D'RAGON OS 」
 
-### **Build the Desktop. Build the Future.**
-
+### **Build the Desktop. Build the Future**
 
 ---
 

@@ -25,6 +25,7 @@ void InputManager::Update(float /*deltaTime*/) noexcept
     // The event queue has been available for reading during this Update
     // call; now it is safe to clear for the next frame.
     m_eventQueue.clear();
+    m_charBuffer.clear();
 }
 
 // ============================================================================
@@ -276,6 +277,8 @@ void InputManager::PushKeyEvent(
 
 void InputManager::PushCharEvent(wchar_t ch) noexcept
 {
+    m_charBuffer.push_back(ch);
+
     InputEvent ev{};
     ev.type             = EventType::CharacterInput;
     ev.data.character   = { ch };

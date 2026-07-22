@@ -61,10 +61,30 @@ enum class SemanticColor {
     ExplorerItemSelected,     ///< Explorer file item selection highlight.
     ExplorerNavigationPane,   ///< Explorer navigation pane background.
     ExplorerToolbarBackground,///< Explorer toolbar background.
+
+    // ── Terminal ───────────────────────────────────────────────────────
+    TerminalBackground,       ///< Terminal window background.
+    TerminalForeground,       ///< Terminal text foreground.
+    TerminalSelection,        ///< Terminal selection highlight.
+    TerminalCursor,           ///< Terminal cursor color.
+
+    // ── Notifications ──────────────────────────────────────────────────
+    NotificationBackground,   ///< Notification popup background.
+    NotificationInfo,         ///< Information notification accent.
+    NotificationWarning,      ///< Warning notification accent.
+    NotificationError,        ///< Error notification accent.
+    NotificationSuccess,      ///< Success notification accent.
+
+    // ── Search ─────────────────────────────────────────────────────────
+    SearchBackground,         ///< Search panel background.
+    SearchHighlight,          ///< Search result highlight.
+
+    // ── Services ───────────────────────────────────────────────────────
+    ServiceIndicator,         ///< Background service activity indicator.
 };
 
 /// @brief  Number of semantic colour tokens.
-inline constexpr std::size_t SemanticColorCount = 32;
+inline constexpr std::size_t SemanticColorCount = 44;
 
 /**
  * @brief  Owns every ThemeColor that a theme defines.
@@ -117,6 +137,20 @@ public:
     [[nodiscard]] const ThemeColor& GetExplorerItemSelected()     const noexcept { return m_colors[29]; }
     [[nodiscard]] const ThemeColor& GetExplorerNavigationPane()   const noexcept { return m_colors[30]; }
     [[nodiscard]] const ThemeColor& GetExplorerToolbarBackground() const noexcept { return m_colors[31]; }
+
+    [[nodiscard]] const ThemeColor& GetTerminalBackground()       const noexcept { return m_colors[32]; }
+    [[nodiscard]] const ThemeColor& GetTerminalForeground()       const noexcept { return m_colors[33]; }
+    [[nodiscard]] const ThemeColor& GetTerminalSelection()        const noexcept { return m_colors[34]; }
+    [[nodiscard]] const ThemeColor& GetTerminalCursor()           const noexcept { return m_colors[35]; }
+
+    [[nodiscard]] const ThemeColor& GetNotificationBackground()   const noexcept { return m_colors[36]; }
+    [[nodiscard]] const ThemeColor& GetNotificationInfo()         const noexcept { return m_colors[37]; }
+    [[nodiscard]] const ThemeColor& GetNotificationWarning()      const noexcept { return m_colors[38]; }
+    [[nodiscard]] const ThemeColor& GetNotificationError()        const noexcept { return m_colors[39]; }
+    [[nodiscard]] const ThemeColor& GetNotificationSuccess()      const noexcept { return m_colors[40]; }
+    [[nodiscard]] const ThemeColor& GetSearchBackground()         const noexcept { return m_colors[41]; }
+    [[nodiscard]] const ThemeColor& GetSearchHighlight()          const noexcept { return m_colors[42]; }
+    [[nodiscard]] const ThemeColor& GetServiceIndicator()         const noexcept { return m_colors[43]; }
 
 private:
     std::array<ThemeColor, SemanticColorCount> m_colors{};

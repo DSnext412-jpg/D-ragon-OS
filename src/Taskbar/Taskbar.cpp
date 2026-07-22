@@ -3,6 +3,8 @@
 #include <Animation/AnimationManager.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Input/MouseManager.hpp>
+#include <Notifications/NotificationManager.hpp>
+#include <Services/ServiceManager.hpp>
 #include <StartMenu/StartMenuController.hpp>
 #include <Theme/ThemeManager.hpp>
 #include <Theme/ThemeMetrics.hpp>
@@ -12,6 +14,7 @@
 #include <WindowManager/WindowCollection.hpp>
 
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -82,6 +85,12 @@ Taskbar::Layout Taskbar::CalculateLayout(
     const float sbY = barY + (height - sbSize) * 0.5f;
     lay.startButton = { sbX, sbY, sbSize, sbSize };
 
+    // ── Search button ────────────────────────────────────────────────────
+    const float searchSize = 36.0f;
+    const float searchX = sbX + sbSize + sbPad;
+    const float searchY = barY + (height - searchSize) * 0.5f;
+    lay.searchButton = { searchX, searchY, searchSize, searchSize };
+
     // ── Clock (right-aligned) ────────────────────────────────────────────
     const float clockW = 120.0f;
     const float clockH = height;
@@ -105,9 +114,13 @@ Taskbar::Layout Taskbar::CalculateLayout(
     lay.trayBattery       = { tx, trayY, trayIconSize, trayIconSize }; tx += trayIconSize + traySpacing;
     lay.trayNotifications = { tx, trayY, trayIconSize, trayIconSize };
 
-    // ── Task list (between start button and tray) ────────────────────────
-    const float sbRight = sbX + sbSize + sbPad;
-    lay.taskListArea = { sbRight, barY, trayX - sbRight, height };
+    // ── Activity indicator (next to notification tray) ───────────────────
+    const float actSize = 8.0f;
+    lay.activityIndicator = { tx + trayIconSize + traySpacing, trayY + (trayIconSize - actSize) * 0.5f, actSize, actSize };
+
+    // ── Task list (between search button and tray) ───────────────────────
+    const float searchRight = searchX + searchSize + sbPad;
+    lay.taskListArea = { searchRight, barY, trayX - searchRight, height };
 
     return lay;
 }
@@ -238,6 +251,11 @@ void Taskbar::ProcessInput() noexcept
         {
             newHover = TaskbarHitRegion::StartButton;
         }
+        // ── Check search button ─────────────────────────────────────────
+        else if (m_layout.searchButton.Contains(pos.x, pos.y))
+        {
+            newHover = TaskbarHitRegion::SearchButton;
+        }
         // ── Check task items (reverse: rightmost first) ──────────────────
         else
         {
@@ -284,10 +302,27 @@ void Taskbar::ProcessInput() noexcept
         {
             m_pressedRegion = TaskbarHitRegion::StartButton;
 
-            // Delegate to StartMenuController
             if (m_pStartMenu)
             {
                 m_pStartMenu->Toggle();
+            }
+        }
+        else if (m_hoveredRegion == TaskbarHitRegion::SearchButton)
+        {
+            m_pressedRegion = TaskbarHitRegion::SearchButton;
+
+            if (m_toggleSearch)
+            {
+                m_toggleSearch();
+            }
+        }
+        else if (m_hoveredRegion == TaskbarHitRegion::TrayNotifications)
+        {
+            m_pressedRegion = TaskbarHitRegion::TrayNotifications;
+
+            if (m_toggleNotifications)
+            {
+                m_toggleNotifications();
             }
         }
         else if (m_hoveredRegion == TaskbarHitRegion::TaskItem)
@@ -340,8 +375,10 @@ void Taskbar::Render(Graphics::Renderer& renderer) noexcept
 
     RenderBackground(renderer);
     RenderStartButton(renderer);
+    RenderSearchButton(renderer);
     RenderTaskItems(renderer);
     RenderSystemTray(renderer);
+    RenderActivityIndicator(renderer);
     RenderClock(renderer);
 }
 
@@ -406,6 +443,45 @@ void Taskbar::RenderStartButton(Graphics::Renderer& renderer) noexcept
     }
 }
 
+void Taskbar::RenderSearchButton(Graphics::Renderer& renderer) noexcept
+{
+    const auto& btn = m_layout.searchButton;
+    const D2D1_RECT_F d2dBtn = D2D1::RectF(btn.x, btn.y, btn.Right(), btn.Bottom());
+
+    const bool hovered = (m_hoveredRegion == TaskbarHitRegion::SearchButton);
+    const bool pressed = (m_pressedRegion == TaskbarHitRegion::SearchButton);
+
+    if (hovered || pressed)
+    {
+        auto token = pressed ? Theme::SemanticColor::TaskbarItemHover
+                             : Theme::SemanticColor::TaskbarItemHover;
+        const auto& hc = m_pThemeManager->GetColor(token);
+        const Graphics::Color hoverBg{ hc.r, hc.g, hc.b, hc.a };
+        renderer.FillRectangle(d2dBtn, hoverBg);
+    }
+
+    const auto& textCol = m_pThemeManager->GetColor(Theme::SemanticColor::TextSecondary);
+    const Graphics::Color iconCol{ textCol.r, textCol.g, textCol.b, textCol.a };
+    const D2D1_RECT_F textRect = D2D1::RectF(
+        btn.x, btn.y + 2.0f, btn.Right(), btn.Bottom() - 2.0f);
+    renderer.DrawText(L"\u2315", textRect, iconCol);
+}
+
+void Taskbar::RenderActivityIndicator(Graphics::Renderer& renderer) noexcept
+{
+    if (!m_pSvcMgr || !m_pSvcMgr->HasActiveServices()) { return; }
+
+    const auto& indColor = m_pThemeManager->GetColor(Theme::SemanticColor::ServiceIndicator);
+    const Graphics::Color ic{ indColor.r, indColor.g, indColor.b, indColor.a };
+
+    const auto& act = m_layout.activityIndicator;
+    const D2D1_RECT_F dot = D2D1::RectF(act.x, act.y, act.Right(), act.Bottom());
+
+    const float pulse = 0.5f + 0.5f * std::sinf(static_cast<float>(std::chrono::steady_clock::now().time_since_epoch().count()) * 0.005f);
+    const Graphics::Color pulseCol{ ic.r, ic.g, ic.b, ic.a * (0.4f + 0.6f * pulse) };
+    renderer.FillRectangle(dot, pulseCol);
+}
+
 void Taskbar::RenderTaskItems(Graphics::Renderer& renderer) noexcept
 {
     for (const auto& ti : m_taskItems)
@@ -467,6 +543,19 @@ void Taskbar::RenderSystemTray(Graphics::Renderer& renderer) noexcept
     drawTrayIcon(m_layout.trayNetwork,  L"Net");
     drawTrayIcon(m_layout.trayBattery,  L"Bat");
     drawTrayIcon(m_layout.trayNotifications, L"Ntf");
+
+    if (m_pNotifMgr && m_pNotifMgr->HasUnread())
+    {
+        const auto& accCol = m_pThemeManager->GetColor(Theme::SemanticColor::Accent);
+        const Graphics::Color badgeCol{ accCol.r, accCol.g, accCol.b, accCol.a };
+
+        const auto& nt = m_layout.trayNotifications;
+        const float badgeSize = 8.0f;
+        const D2D1_RECT_F badge = D2D1::RectF(
+            nt.Right() - badgeSize, nt.y - 2.0f,
+            nt.Right() + 2.0f, nt.y + badgeSize);
+        renderer.FillRectangle(badge, badgeCol);
+    }
 }
 
 void Taskbar::RenderClock(Graphics::Renderer& renderer) noexcept

@@ -5,6 +5,7 @@
 #include <Theme/ThemeMetrics.hpp>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,12 +16,15 @@ namespace DragonOS::Input      { class MouseManager; }
 namespace DragonOS::Animation  { class AnimationManager; }
 namespace DragonOS::WindowManager { class WindowManager; class DragonWindow; }
 namespace DragonOS::StartMenu  { class StartMenuController; }
+namespace DragonOS::Notifications { class NotificationManager; }
+namespace DragonOS::Services   { class ServiceManager; }
 
 namespace DragonOS::Taskbar {
 
 enum class TaskbarHitRegion : uint8_t {
     None,
     StartButton,
+    SearchButton,
     TaskItem,
     TrayVolume,
     TrayNetwork,
@@ -78,6 +82,34 @@ public:
         m_pStartMenu = &controller;
     }
 
+    void SetNotificationManager(Notifications::NotificationManager& mgr) noexcept
+    {
+        m_pNotifMgr = &mgr;
+    }
+
+    void SetServiceManager(Services::ServiceManager& svcMgr) noexcept
+    {
+        m_pSvcMgr = &svcMgr;
+    }
+
+    // ── Action callbacks ──────────────────────────────────────────────────
+
+    using TogglePanelCallback = std::function<void()>;
+    void SetToggleSearchCallback(TogglePanelCallback cb) noexcept
+    {
+        m_toggleSearch = std::move(cb);
+    }
+
+    void SetToggleNotificationCallback(TogglePanelCallback cb) noexcept
+    {
+        m_toggleNotifications = std::move(cb);
+    }
+
+    bool IsSearchButtonHovered() const noexcept
+    {
+        return m_hoveredRegion == TaskbarHitRegion::SearchButton;
+    }
+
     // ── Accessors ─────────────────────────────────────────────────────────
 
     [[nodiscard]] float GetHeight() const noexcept { return m_height; }
@@ -94,6 +126,7 @@ private:
     struct Layout {
         Input::Bounds bar{};
         Input::Bounds startButton{};
+        Input::Bounds searchButton{};
         Input::Bounds taskListArea{};
         Input::Bounds clockArea{};
         Input::Bounds trayArea{};
@@ -102,6 +135,7 @@ private:
         Input::Bounds trayNetwork{};
         Input::Bounds trayBattery{};
         Input::Bounds trayNotifications{};
+        Input::Bounds activityIndicator{};
     };
 
     [[nodiscard]] Layout CalculateLayout(
@@ -111,8 +145,10 @@ private:
 
     void RenderBackground(Graphics::Renderer& renderer) noexcept;
     void RenderStartButton(Graphics::Renderer& renderer) noexcept;
+    void RenderSearchButton(Graphics::Renderer& renderer) noexcept;
     void RenderTaskItems(Graphics::Renderer& renderer) noexcept;
     void RenderSystemTray(Graphics::Renderer& renderer) noexcept;
+    void RenderActivityIndicator(Graphics::Renderer& renderer) noexcept;
     void RenderClock(Graphics::Renderer& renderer) noexcept;
 
     void RenderTaskItem(
@@ -150,11 +186,15 @@ private:
 
     // ── Non-owning references ─────────────────────────────────────────────
 
-    Theme::ThemeManager*           m_pThemeManager{ nullptr };
-    Input::MouseManager*           m_pMouse{ nullptr };
-    WindowManager::WindowManager*  m_pWindowManager{ nullptr };
-    Animation::AnimationManager*   m_pAnimManager{ nullptr };
-    StartMenu::StartMenuController* m_pStartMenu{ nullptr };
+    Theme::ThemeManager*              m_pThemeManager{ nullptr };
+    Input::MouseManager*              m_pMouse{ nullptr };
+    WindowManager::WindowManager*     m_pWindowManager{ nullptr };
+    Animation::AnimationManager*      m_pAnimManager{ nullptr };
+    StartMenu::StartMenuController*   m_pStartMenu{ nullptr };
+    Notifications::NotificationManager* m_pNotifMgr{ nullptr };
+    Services::ServiceManager*         m_pSvcMgr{ nullptr };
+    TogglePanelCallback              m_toggleSearch;
+    TogglePanelCallback              m_toggleNotifications;
 
     bool                  m_initialized{ false };
 };

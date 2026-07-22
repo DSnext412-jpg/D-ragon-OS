@@ -4,6 +4,7 @@
 #include <Animation/AnimationManager.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Input/MouseManager.hpp>
+#include <Notifications/NotificationManager.hpp>
 #include <Theme/ThemeManager.hpp>
 #include <Theme/ThemeMetrics.hpp>
 #include <Theme/ThemePalette.hpp>
@@ -602,6 +603,27 @@ void StartMenuController::RenderHeader(Graphics::Renderer& renderer) noexcept
         h.x + 16.0f, h.y + 34.0f,
         h.Right() - 16.0f, h.y + 56.0f);
     renderer.DrawText(dateStr, dateRect, sc);
+
+    // ── Notification badge ──────────────────────────────────────────────
+    if (m_pNotifMgr && m_pNotifMgr->HasUnread())
+    {
+        const auto& accCol = m_pThemeManager->GetColor(Theme::SemanticColor::Accent);
+        const Graphics::Color badgeBg{ accCol.r, accCol.g, accCol.b, accCol.a * m_animProgress };
+
+        const std::wstring countStr = std::to_wstring(m_pNotifMgr->GetUnreadCount());
+        const float badgeW = 20.0f;
+        const float badgeH = 20.0f;
+        const D2D1_RECT_F badgeRect = D2D1::RectF(
+            h.Right() - badgeW - 12.0f, h.y + 8.0f,
+            h.Right() - 12.0f, h.y + 8.0f + badgeH);
+        renderer.FillRectangle(badgeRect, badgeBg);
+
+        const Graphics::Color badgeText{ 1.0f, 1.0f, 1.0f, 1.0f * m_animProgress };
+        const D2D1_RECT_F badgeTextRect = D2D1::RectF(
+            badgeRect.left, badgeRect.top,
+            badgeRect.right, badgeRect.bottom);
+        renderer.DrawText(countStr, badgeTextRect, badgeText);
+    }
 }
 
 void StartMenuController::RenderSearchBox(Graphics::Renderer& renderer) noexcept

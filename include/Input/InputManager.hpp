@@ -119,6 +119,15 @@ public:
         return m_eventQueue;
     }
 
+    // ── Character input buffer ──────────────────────────────────────────
+
+    [[nodiscard]] const std::vector<wchar_t>& GetCharBuffer() const noexcept
+    {
+        return m_charBuffer;
+    }
+
+    void ClearCharBuffer() noexcept { m_charBuffer.clear(); }
+
     // ── Convenience queries ──────────────────────────────────────────────
 
     [[nodiscard]] bool IsKeyPressed(KeyCode k)  const noexcept { return m_keyboard.IsKeyPressed(k); }
@@ -154,6 +163,7 @@ private:
     Mouse                   m_mouse;
     Keyboard                m_keyboard;
     std::vector<InputEvent> m_eventQueue;
+    std::vector<wchar_t>    m_charBuffer;
 };
 
 } // namespace DragonOS::Input

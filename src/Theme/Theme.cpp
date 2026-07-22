@@ -72,6 +72,26 @@ static ThemePalette CreateDarkPalette() noexcept
     p[SemanticColor::ExplorerNavigationPane]   = ThemeColor::FromRGB(28, 32, 42);     // Slightly darker slate
     p[SemanticColor::ExplorerToolbarBackground] = ThemeColor::FromRGB(36, 40, 50);    // Slightly lighter slate
 
+    // ── Terminal ───────────────────────────────────────────────────────────
+    p[SemanticColor::TerminalBackground]       = ThemeColor::FromRGB(20, 22, 28);     // Very dark slate
+    p[SemanticColor::TerminalForeground]       = ThemeColor::FromRGB(220, 220, 220);  // Light grey
+    p[SemanticColor::TerminalSelection]        = ThemeColor::FromRGB(58, 134, 255, 50); // Blue tint
+    p[SemanticColor::TerminalCursor]           = ThemeColor::FromRGB(220, 220, 220);  // Light grey
+
+    // ── Notifications ───────────────────────────────────────────────────────
+    p[SemanticColor::NotificationBackground]   = ThemeColor::FromRGB(40, 44, 54);     // Slightly lighter than window bg
+    p[SemanticColor::NotificationInfo]         = ThemeColor::FromRGB(58, 134, 255);   // Blue
+    p[SemanticColor::NotificationWarning]      = ThemeColor::FromRGB(230, 170, 40);   // Amber
+    p[SemanticColor::NotificationError]        = ThemeColor::FromRGB(220, 50, 50);    // Red
+    p[SemanticColor::NotificationSuccess]      = ThemeColor::FromRGB(50, 190, 80);    // Green
+
+    // ── Search ──────────────────────────────────────────────────────────────
+    p[SemanticColor::SearchBackground]         = ThemeColor::FromRGB(32, 36, 46);     // Same as window background
+    p[SemanticColor::SearchHighlight]          = ThemeColor::FromRGB(58, 134, 255, 80); // Blue highlight
+
+    // ── Services ────────────────────────────────────────────────────────────
+    p[SemanticColor::ServiceIndicator]         = ThemeColor::FromRGB(58, 134, 255);   // Blue indicator
+
     return p;
 }
 

@@ -1,39 +1,33 @@
-DragonOS/
-# ============================================================================
-#  DragonOS — .gitignore
-# ============================================================================
-
-# ── Build output ──────────────────────────────────────────────────────────────
-build*/
-out*/
-[Pp]ackages/
-
-# ── IDE / Editor ──────────────────────────────────────────────────────────────
-.idea/
+# Visual Studio
 .vs/
 *.suo
 *.user
+*.userosscache
 *.sln.docstates
-.vscode/
-*.swp
-*.swo
 
-# ── Compiler / Toolchain ──────────────────────────────────────────────────────
+# Build outputs
+build/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CMakeUserPresets.json
+
+# Compiled artifacts
 *.obj
-*.lib
-*.dll
-*.exe
 *.pdb
 *.ilk
+*.exe
+*.lib
+*.dll
 *.exp
-*.log
-*.tlog
-*.ipch
+*.ipdb
+*.iobj
 
-# ── CMake ─────────────────────────────────────────────────────────────────────
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-CTestTestfile.cmake
-*.cmake
-!.dragonos.cmake
+# IDE
+*.vcxproj.filters
+*.vcxproj.user
+Debug/
+Release/
+x64/
+Win32/

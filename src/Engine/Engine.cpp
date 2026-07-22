@@ -13,6 +13,7 @@
 #include <Engine/SystemManager.hpp>
 
 #include <Animation/AnimationManager.hpp>
+#include <AppRuntime/ApplicationManager.hpp>
 #include <Apps/ApplicationRegistry.hpp>
 #include <Desktop/DesktopManager.hpp>
 #include <Explorer/ExplorerSystem.hpp>
@@ -20,8 +21,17 @@
 #include <Graphics/Renderer.hpp>
 #include <Input/DebugOverlay.hpp>
 #include <Input/InputManager.hpp>
+#include <Process/ProcessManager.hpp>
 #include <StartMenu/StartMenuController.hpp>
 #include <Taskbar/Taskbar.hpp>
+#include <Notifications/NotificationManager.hpp>
+#include <Notifications/NotificationCenter.hpp>
+#include <Search/SearchService.hpp>
+#include <Search/SearchProvider.hpp>
+#include <Search/SearchResult.hpp>
+#include <Services/ServiceManager.hpp>
+#include <Session/SessionManager.hpp>
+#include <Terminal/TerminalSystem.hpp>
 #include <Theme/ThemeManager.hpp>
 #include <WindowManager/WindowManager.hpp>
 
@@ -300,6 +310,68 @@ private:
     float                             m_viewportHeight{ 0.0f };
 };
 
+// ── NotificationCenterSystem ─────────────────────────────────────────────
+
+class NotificationCenterSystem final : public System {
+public:
+    explicit NotificationCenterSystem(
+        Theme::ThemeManager& themeMgr,
+        Input::InputManager& inputMgr) noexcept
+        : m_themeManager{ themeMgr }
+        , m_inputManager{ inputMgr }
+    {}
+
+    bool Initialize(EngineContext& ctx) noexcept override
+    {
+        m_viewportWidth  = ctx.GetViewportWidth();
+        m_viewportHeight = ctx.GetViewportHeight();
+
+        return m_center.Initialize(
+            m_themeManager,
+            m_inputManager.GetMouseManager());
+    }
+
+    void Shutdown() noexcept override
+    {
+        m_center.Shutdown();
+    }
+
+    void Update(float deltaTime) noexcept override
+    {
+        if (m_center.IsOpen())
+        {
+            m_center.ProcessInput();
+        }
+        m_center.Update(deltaTime);
+    }
+
+    void Render(EngineContext& ctx) noexcept override
+    {
+        if (!m_center.IsOpen()) { return; }
+
+        auto* renderer = ctx.GetRenderer();
+        if (!renderer) { return; }
+
+        m_center.Render(*renderer);
+    }
+
+    void Resize(float width, float height) noexcept override
+    {
+        m_viewportWidth  = width;
+        m_viewportHeight = height;
+        m_center.Resize(width, height);
+    }
+
+    Notifications::NotificationCenter& GetCenter() noexcept { return m_center; }
+
+private:
+    Notifications::NotificationCenter m_center;
+    Theme::ThemeManager&              m_themeManager;
+    Input::InputManager&              m_inputManager;
+    float                             m_viewportWidth{ 0.0f };
+    float                             m_viewportHeight{ 0.0f };
+};
+
 } // anonymous namespace
 } // namespace DragonOS::Engine
 
@@ -365,6 +437,40 @@ bool Engine::Initialize(
     // ── Register ApplicationRegistry (shared data store, not a visual layer) ──
     auto* appRegistry = m_pSystemManager->Register<Apps::ApplicationRegistry>();
 
+    // ── Register ApplicationManager (runtime app tracking) ───────────────
+    auto* appMgr = m_pSystemManager->Register<AppRuntime::ApplicationManager>();
+
+    // ── Register ProcessManager (process tracking) ───────────────────────
+    auto* procMgr = m_pSystemManager->Register<Process::ProcessManager>();
+
+    // ── Register NotificationManager (non-visual notification queue) ─────
+    auto* notifMgr = m_pSystemManager->Register<Notifications::NotificationManager>();
+
+    // ── Register SearchService (non-visual search engine) ────────────────
+    auto* searchService = m_pSystemManager->Register<Search::SearchService>();
+    searchService->SetApplicationRegistry(*appRegistry);
+    searchService->SetFileSystemService(*fsService);
+
+    // ── Register ServiceManager (background service controller) ──────────
+    auto* svcMgr = m_pSystemManager->Register<Services::ServiceManager>();
+
+    // ── Register SessionManager (session persistence) ────────────────────
+    auto* sessionMgr = m_pSystemManager->Register<Session::SessionManager>();
+    sessionMgr->SetWindowManager(windowManager);
+    sessionMgr->SetThemeManager(*themeMgr);
+    sessionMgr->SetDesktopManager(desktopManager);
+    sessionMgr->SetFileSystemService(*fsService);
+
+    // ── Register NotificationCenterSystem (UI panel) ─────────────────────
+    auto* notifCenterSys = m_pSystemManager->Register<NotificationCenterSystem>(
+        *themeMgr, *inputMgr);
+    notifCenterSys->GetCenter().SetNotificationManager(*notifMgr);
+
+    // ── Register TerminalSystem ──────────────────────────────────────────
+    auto* terminalSys = m_pSystemManager->Register<Terminal::TerminalSystem>(
+        windowManager, *themeMgr, *animMgr, *fsService, *inputMgr);
+    terminalSys->SetMouseManager(inputMgr->GetMouseManager());
+
     // ── Register StartMenuSystem (renders above taskbar, below debug) ────
     auto* startMenuSys = m_pSystemManager->Register<StartMenuSystem>(
         *themeMgr, *inputMgr, *animMgr, *appRegistry);
@@ -372,14 +478,50 @@ bool Engine::Initialize(
     // Wiring: StartMenuController needs Taskbar reference
     startMenuSys->SetTaskbar(taskbarSys->GetTaskbar());
 
-    // Wiring: StartMenu launch callback → ExplorerSystem
+    // Wire NotificationManager + ServiceManager to Taskbar
+    auto& taskbar = taskbarSys->GetTaskbar();
+    taskbar.SetNotificationManager(*notifMgr);
+    taskbar.SetServiceManager(*svcMgr);
+
+    // Wire notification toggle callback (tray notifications icon)
+    taskbar.SetToggleNotificationCallback([notifCenterSys]()
+    {
+        notifCenterSys->GetCenter().Toggle();
+    });
+
+    // Wire search toggle callback (search button on taskbar)
+    taskbar.SetToggleSearchCallback([searchService]()
+    {
+        // Future: open search overlay panel
+    });
+
+    // Wire NotificationManager to StartMenuController
+    startMenuSys->GetController().SetNotificationManager(*notifMgr);
+
+    // Wiring: StartMenu launch callback → app launcher
     startMenuSys->GetController().SetLaunchAppCallback(
-        [explorerSys](const Apps::AppInfo* appInfo)
+        [explorerSys, terminalSys, appMgr, procMgr](const Apps::AppInfo* appInfo)
         {
             if (!appInfo) { return; }
             if (appInfo->name == L"Explorer" || appInfo->name == L"explorer")
             {
                 explorerSys->OpenExplorer();
+                appMgr->RegisterApplication(
+                    appInfo->id, appInfo->name, appInfo->displayName);
+                procMgr->SpawnProcess(appInfo->name + L".exe");
+            }
+            else if (appInfo->name == L"Terminal" || appInfo->name == L"terminal")
+            {
+                terminalSys->OpenTerminal();
+                appMgr->RegisterApplication(
+                    appInfo->id, appInfo->name, appInfo->displayName);
+                procMgr->SpawnProcess(appInfo->name + L".exe");
+            }
+            else if (appInfo->name == L"Settings" || appInfo->name == L"Settings")
+            {
+                appMgr->RegisterApplication(
+                    appInfo->id, appInfo->name, appInfo->displayName);
+                procMgr->SpawnProcess(appInfo->name + L".exe");
             }
         });
 
@@ -387,6 +529,8 @@ bool Engine::Initialize(
     auto* debugOverlay = m_pSystemManager->Register<Input::DebugOverlay>();
     debugOverlay->SetInputManager(*inputMgr);
     debugOverlay->SetWindowManager(windowManager);
+    debugOverlay->SetApplicationManager(*appMgr);
+    debugOverlay->SetProcessManager(*procMgr);
 
     // ── Initialise all systems ───────────────────────────────────────────
     m_pSystemManager->InitializeAll(*m_pContext);

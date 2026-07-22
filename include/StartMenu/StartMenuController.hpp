@@ -17,6 +17,7 @@ namespace DragonOS::Theme       { class ThemeManager; }
 namespace DragonOS::Input       { class MouseManager; }
 namespace DragonOS::Animation   { class AnimationManager; class Animation; }
 namespace DragonOS::Apps        { class ApplicationRegistry; }
+namespace DragonOS::Notifications { class NotificationManager; }
 
 namespace DragonOS::StartMenu {
 
@@ -104,6 +105,11 @@ public:
     void SetLaunchAppCallback(LaunchAppCallback callback) noexcept
     {
         m_launchCallback = std::move(callback);
+    }
+
+    void SetNotificationManager(Notifications::NotificationManager& mgr) noexcept
+    {
+        m_pNotifMgr = &mgr;
     }
 
     // ── Accessors ─────────────────────────────────────────────────────────
@@ -215,10 +221,11 @@ private:
 
     // ── Non-owning references ─────────────────────────────────────────────
 
-    Theme::ThemeManager*         m_pThemeManager{ nullptr };
-    Input::MouseManager*         m_pMouse{ nullptr };
-    Animation::AnimationManager* m_pAnimManager{ nullptr };
-    Apps::ApplicationRegistry*   m_pAppRegistry{ nullptr };
+    Theme::ThemeManager*              m_pThemeManager{ nullptr };
+    Input::MouseManager*              m_pMouse{ nullptr };
+    Animation::AnimationManager*      m_pAnimManager{ nullptr };
+    Apps::ApplicationRegistry*        m_pAppRegistry{ nullptr };
+    Notifications::NotificationManager* m_pNotifMgr{ nullptr };
 
     bool                  m_initialized{ false };
 };

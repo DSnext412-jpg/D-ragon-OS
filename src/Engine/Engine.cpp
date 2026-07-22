@@ -35,6 +35,21 @@
 #include <Theme/ThemeManager.hpp>
 #include <WindowManager/WindowManager.hpp>
 
+#include <Plugins/PluginManager.hpp>
+#include <ExtensionPoints/ExtensionPoint.hpp>
+#include <Events/EventBus.hpp>
+
+#include <SDK/NotificationServiceAdapter.hpp>
+#include <SDK/ConfigServiceAdapter.hpp>
+#include <SDK/FileServiceAdapter.hpp>
+#include <SDK/ThemeServiceAdapter.hpp>
+#include <SDK/InputServiceAdapter.hpp>
+#include <SDK/ResourceServiceAdapter.hpp>
+#include <SDK/WindowServiceAdapter.hpp>
+#include <SDK/MenuServiceAdapter.hpp>
+#include <SDK/DialogServiceAdapter.hpp>
+#include <SDK/EventBusAdapter.hpp>
+
 // ============================================================================
 //  Concrete System implementations
 // ============================================================================
@@ -372,6 +387,178 @@ private:
     float                             m_viewportHeight{ 0.0f };
 };
 
+// ── PluginSystem ──────────────────────────────────────────────────────────
+
+class PluginSystem final : public System {
+public:
+    PluginSystem() noexcept = default;
+
+    bool Initialize(EngineContext& ctx) noexcept override
+    {
+        m_viewportWidth  = ctx.GetViewportWidth();
+        m_viewportHeight = ctx.GetViewportHeight();
+
+        // Create all SDK service adapters
+        auto* themeMgr   = ctx.GetThemeManager();
+        auto* inputMgr   = ctx.GetInputManager();
+
+        if (m_pInternalNotifMgr)
+        {
+            m_pNotifSvc = std::make_unique<SDK::NotificationServiceAdapter>(
+                *m_pInternalNotifMgr);
+        }
+        m_pConfigSvc = std::make_unique<SDK::ConfigServiceAdapter>();
+
+        if (m_pInternalFileSvc)
+        {
+            m_pFileSvc = std::make_unique<SDK::FileServiceAdapter>(
+                *m_pInternalFileSvc);
+        }
+
+        if (themeMgr)
+        {
+            m_pThemeSvc = std::make_unique<SDK::ThemeServiceAdapter>(*themeMgr);
+        }
+
+        if (inputMgr)
+        {
+            m_pInputSvc = std::make_unique<SDK::InputServiceAdapter>(*inputMgr);
+        }
+
+        // ResourceManager is optional — use fallback if not set
+        auto& resMgrRef = m_pInternalResMgr
+            ? *m_pInternalResMgr
+            : m_fallbackResMgr;
+        m_pResSvc = std::make_unique<SDK::ResourceServiceAdapter>(resMgrRef);
+
+        if (m_pInternalWinMgr)
+        {
+            m_pWinSvc = std::make_unique<SDK::WindowServiceAdapter>(
+                *m_pInternalWinMgr);
+        }
+
+        m_pMenuSvc  = std::make_unique<SDK::MenuServiceAdapter>();
+        m_pDlgSvc   = std::make_unique<SDK::DialogServiceAdapter>();
+        m_pEvBusAda = std::make_unique<SDK::EventBusAdapter>(m_eventBus);
+
+        // Wire service adapters to PluginManager
+        m_pluginManager.SetNotificationService(m_pNotifSvc.get());
+        m_pluginManager.SetConfigService(m_pConfigSvc.get());
+        m_pluginManager.SetFileService(m_pFileSvc.get());
+        m_pluginManager.SetThemeService(m_pThemeSvc.get());
+        m_pluginManager.SetInputService(m_pInputSvc.get());
+        m_pluginManager.SetResourceService(m_pResSvc.get());
+        m_pluginManager.SetWindowService(m_pWinSvc.get());
+        m_pluginManager.SetMenuService(m_pMenuSvc.get());
+        m_pluginManager.SetDialogService(m_pDlgSvc.get());
+        m_pluginManager.SetEventBus(m_pEvBusAda.get());
+
+        m_pluginManager.SetExtensionPointManager(m_extensionPointMgr);
+
+        m_pluginManager.SetOnPluginLoaded(
+            [this](std::wstring_view pluginName)
+            {
+                // Publish event when a plugin loads
+                dragonos::sdk::Event ev;
+                ev.type = dragonos::sdk::EventType::PluginLoaded;
+                ev.sourceName = std::wstring{ pluginName };
+                m_eventBus.Publish(ev);
+            });
+
+        m_pluginManager.SetOnPluginUnloaded(
+            [this](std::wstring_view pluginName)
+            {
+                dragonos::sdk::Event ev;
+                ev.type = dragonos::sdk::EventType::PluginUnloaded;
+                ev.sourceName = std::wstring{ pluginName };
+                m_eventBus.Publish(ev);
+            });
+
+        return m_pluginManager.Initialize(ctx);
+    }
+
+    void SetPointers(
+        Notifications::NotificationManager* notifMgr,
+        FileSystem::FileSystemService*      fileSvc,
+        Resources::ResourceManager*         resMgr,
+        WindowManager::WindowManager*       winMgr) noexcept
+    {
+        m_pInternalNotifMgr = notifMgr;
+        m_pInternalFileSvc  = fileSvc;
+        m_pInternalResMgr   = resMgr;
+        m_pInternalWinMgr   = winMgr;
+    }
+
+    void Shutdown() noexcept override
+    {
+        m_pluginManager.Shutdown();
+        m_eventBus.ProcessAsyncEvents();
+
+        m_pNotifSvc.reset();
+        m_pConfigSvc.reset();
+        m_pFileSvc.reset();
+        m_pThemeSvc.reset();
+        m_pInputSvc.reset();
+        m_pResSvc.reset();
+        m_pWinSvc.reset();
+        m_pMenuSvc.reset();
+        m_pDlgSvc.reset();
+        m_pEvBusAda.reset();
+    }
+
+    void Update(float deltaTime) noexcept override
+    {
+        m_eventBus.ProcessAsyncEvents();
+        m_pluginManager.Update(deltaTime);
+    }
+
+    void Render(EngineContext& /*ctx*/) noexcept override
+    {
+    }
+
+    void Resize(float width, float height) noexcept override
+    {
+        m_viewportWidth  = width;
+        m_viewportHeight = height;
+    }
+
+    Plugins::PluginManager& GetPluginManager() noexcept { return m_pluginManager; }
+    Events::EventBus&       GetEventBus()       noexcept { return m_eventBus; }
+    ExtensionPoints::ExtensionPointManager& GetExtensionPointMgr() noexcept
+    {
+        return m_extensionPointMgr;
+    }
+
+private:
+    // Core
+    Plugins::PluginManager              m_pluginManager;
+    Events::EventBus                    m_eventBus;
+    ExtensionPoints::ExtensionPointManager m_extensionPointMgr;
+
+    // SDK service adapters
+    std::unique_ptr<SDK::NotificationServiceAdapter> m_pNotifSvc;
+    std::unique_ptr<SDK::ConfigServiceAdapter>       m_pConfigSvc;
+    std::unique_ptr<SDK::FileServiceAdapter>         m_pFileSvc;
+    std::unique_ptr<SDK::ThemeServiceAdapter>        m_pThemeSvc;
+    std::unique_ptr<SDK::InputServiceAdapter>        m_pInputSvc;
+    std::unique_ptr<SDK::ResourceServiceAdapter>     m_pResSvc;
+    std::unique_ptr<SDK::WindowServiceAdapter>       m_pWinSvc;
+    std::unique_ptr<SDK::MenuServiceAdapter>         m_pMenuSvc;
+    std::unique_ptr<SDK::DialogServiceAdapter>       m_pDlgSvc;
+    std::unique_ptr<SDK::EventBusAdapter>            m_pEvBusAda;
+
+    // Internal system pointers (set externally before Initialize)
+    Notifications::NotificationManager* m_pInternalNotifMgr{ nullptr };
+    FileSystem::FileSystemService*      m_pInternalFileSvc{ nullptr };
+    Resources::ResourceManager*         m_pInternalResMgr{ nullptr };
+    WindowManager::WindowManager*       m_pInternalWinMgr{ nullptr };
+
+    Resources::ResourceManager          m_fallbackResMgr;
+
+    float m_viewportWidth{ 0.0f };
+    float m_viewportHeight{ 0.0f };
+};
+
 } // anonymous namespace
 } // namespace DragonOS::Engine
 
@@ -525,12 +712,18 @@ bool Engine::Initialize(
             }
         });
 
-    // ── Register debug overlay (last, so it renders on top) ──────────────
+    // ── Register debug overlay ──────────────────────────────────────────
     auto* debugOverlay = m_pSystemManager->Register<Input::DebugOverlay>();
     debugOverlay->SetInputManager(*inputMgr);
     debugOverlay->SetWindowManager(windowManager);
     debugOverlay->SetApplicationManager(*appMgr);
     debugOverlay->SetProcessManager(*procMgr);
+
+    // ── Register PluginSystem (orchestrates plugin lifecycle) ────────────
+    auto* pluginSys = m_pSystemManager->Register<PluginSystem>();
+
+    // Set internal pointers before Initialize
+    pluginSys->SetPointers(notifMgr, fsService, nullptr, &windowManager);
 
     // ── Initialise all systems ───────────────────────────────────────────
     m_pSystemManager->InitializeAll(*m_pContext);

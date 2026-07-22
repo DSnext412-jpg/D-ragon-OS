@@ -51,7 +51,11 @@ add_executable(DragonOS WIN32 ${DRAGONOS_SOURCES})
 # ---------------------------------------------------------------------------
 #  Include directories
 # ---------------------------------------------------------------------------
-target_include_directories(DragonOS PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_include_directories(DragonOS PRIVATE
+    "${CMAKE_SOURCE_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/sdk"
+)
 
 # ---------------------------------------------------------------------------
 #  Compiler options — MSVC
@@ -80,6 +84,14 @@ target_compile_definitions(DragonOS PRIVATE
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
 )
+
+# ---------------------------------------------------------------------------
+#  Sample plugin (optional)
+# ---------------------------------------------------------------------------
+option(DRAGONOS_BUILD_SAMPLE_PLUGIN "Build the sample plugin" ON)
+if(DRAGONOS_BUILD_SAMPLE_PLUGIN AND EXISTS "${CMAKE_SOURCE_DIR}/plugins/sample/CMakeLists.txt")
+    add_subdirectory(plugins/sample)
+endif()
 
 # ---------------------------------------------------------------------------
 #  Linker dependencies — Windows SDK libraries

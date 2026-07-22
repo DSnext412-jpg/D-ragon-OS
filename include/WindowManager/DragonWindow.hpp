@@ -127,6 +127,7 @@ public:
 
     // ── Accessors ────────────────────────────────────────────────────────
 
+    void SetTitle(std::wstring_view title) noexcept { m_title = title; }
     [[nodiscard]] const std::wstring& GetTitle()  const noexcept { return m_title; }
     [[nodiscard]] float GetX()      const noexcept { return m_x; }
     [[nodiscard]] float GetY()      const noexcept { return m_y; }
@@ -176,6 +177,11 @@ public:
     [[nodiscard]] float GetRestoreW() const noexcept { return m_restoreW; }
     [[nodiscard]] float GetRestoreH() const noexcept { return m_restoreH; }
 
+    void SetMinWidth(float w) noexcept { m_minWidth = w; }
+    void SetMinHeight(float h) noexcept { m_minHeight = h; }
+    [[nodiscard]] float GetMinWidth() const noexcept { return m_minWidth; }
+    [[nodiscard]] float GetMinHeight() const noexcept { return m_minHeight; }
+
     static constexpr float MinWindowWidth  = 200.0f;
     static constexpr float MinWindowHeight = 100.0f;
 
@@ -205,6 +211,8 @@ private:
     WindowState   m_state{ WindowState::Normal };
     WindowStyle   m_style{ WindowStyle::Resizable | WindowStyle::Closable | WindowStyle::Movable };
     uint64_t      m_id{ NextId() };
+    float         m_minWidth{ MinWindowWidth };
+    float         m_minHeight{ MinWindowHeight };
 
     // ── Mouse-interaction state (set by WindowManager each frame) ────────
     bool          m_hovered{ false };

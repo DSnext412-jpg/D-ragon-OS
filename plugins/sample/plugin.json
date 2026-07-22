@@ -1,0 +1,11 @@
+{
+    "name": "HelloDragonOS",
+    "displayName": "Hello DragonOS",
+    "description": "A sample plugin demonstrating the DragonOS SDK",
+    "version": "1.0.0",
+    "author": "DragonOS Team",
+    "vendor": "DragonOS",
+    "sdkVersion": 10000,
+    "permissions": ["Notifications", "FileAccess", "WindowManagement", "InputEvents", "Configuration"],
+    "dependencies": []
+}

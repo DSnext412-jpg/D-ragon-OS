@@ -38,6 +38,8 @@
 #include <Plugins/PluginManager.hpp>
 #include <ExtensionPoints/ExtensionPoint.hpp>
 #include <Events/EventBus.hpp>
+#include <Security/SecuritySystem.hpp>
+#include <Diagnostics/DevToolsManager.hpp>
 
 #include <SDK/NotificationServiceAdapter.hpp>
 #include <SDK/ConfigServiceAdapter.hpp>
@@ -685,9 +687,15 @@ bool Engine::Initialize(
     // Wire NotificationManager to StartMenuController
     startMenuSys->GetController().SetNotificationManager(*notifMgr);
 
+    // ── Register DevToolsManager (system monitor, debug console, dashboard) ──
+    auto* devToolsSys = m_pSystemManager->Register<Diagnostics::DevToolsManager>(
+        windowManager, *themeMgr, *animMgr, *inputMgr,
+        *procMgr, *appMgr, *notifMgr);
+    devToolsSys->SetMouseManager(inputMgr->GetMouseManager());
+
     // Wiring: StartMenu launch callback → app launcher
     startMenuSys->GetController().SetLaunchAppCallback(
-        [explorerSys, terminalSys, appMgr, procMgr](const Apps::AppInfo* appInfo)
+        [explorerSys, terminalSys, devToolsSys, appMgr, procMgr](const Apps::AppInfo* appInfo)
         {
             if (!appInfo) { return; }
             if (appInfo->name == L"Explorer" || appInfo->name == L"explorer")
@@ -710,6 +718,27 @@ bool Engine::Initialize(
                     appInfo->id, appInfo->name, appInfo->displayName);
                 procMgr->SpawnProcess(appInfo->name + L".exe");
             }
+            else if (appInfo->name == L"System Monitor" || appInfo->name == L"SystemMonitor")
+            {
+                devToolsSys->OpenSystemMonitor();
+                appMgr->RegisterApplication(
+                    appInfo->id, appInfo->name, appInfo->displayName);
+                procMgr->SpawnProcess(appInfo->name + L".exe");
+            }
+            else if (appInfo->name == L"Debug Console" || appInfo->name == L"DebugConsole")
+            {
+                devToolsSys->OpenDebugConsole();
+                appMgr->RegisterApplication(
+                    appInfo->id, appInfo->name, appInfo->displayName);
+                procMgr->SpawnProcess(appInfo->name + L".exe");
+            }
+            else if (appInfo->name == L"Diagnostic Dashboard" || appInfo->name == L"DiagnosticDashboard")
+            {
+                devToolsSys->OpenDashboard();
+                appMgr->RegisterApplication(
+                    appInfo->id, appInfo->name, appInfo->displayName);
+                procMgr->SpawnProcess(appInfo->name + L".exe");
+            }
         });
 
     // ── Register debug overlay ──────────────────────────────────────────
@@ -725,8 +754,19 @@ bool Engine::Initialize(
     // Set internal pointers before Initialize
     pluginSys->SetPointers(notifMgr, fsService, nullptr, &windowManager);
 
+    // ── Register SecuritySystem (login screen, user management, permissions) ──
+    auto* securitySys = m_pSystemManager->Register<Security::SecuritySystem>();
+    securitySys->SetThemeManager(*themeMgr);
+    securitySys->SetInputManager(*inputMgr);
+    securitySys->SetMouseManager(inputMgr->GetMouseManager());
+
     // ── Initialise all systems ───────────────────────────────────────────
     m_pSystemManager->InitializeAll(*m_pContext);
+
+    // ── Post-initialization wiring ───────────────────────────────────────
+    // Wire PluginManager -> PermissionManager for plugin security validation
+    pluginSys->GetPluginManager().SetPermissionManager(
+        &securitySys->GetPermissionManager());
 
     m_initialized = true;
     return true;

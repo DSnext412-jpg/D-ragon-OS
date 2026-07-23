@@ -4,6 +4,8 @@
 
 #include <ExtensionPoints/ExtensionPoint.hpp>
 #include <ExtensionPoints/StartMenuExtension.hpp>
+#include <Security/PermissionManager.hpp>
+#include <Security/SecurityTypes.hpp>
 
 #include <Engine/EngineContext.hpp>
 #include <Engine/SystemManager.hpp>
@@ -196,6 +198,39 @@ bool PluginManager::ValidatePlugin(const PluginMetadata& metadata) const noexcep
     {
         const PluginMetadata* depMeta = m_registry.FindMetadata(dep.name);
         if (!depMeta) { return false; }
+    }
+
+    // Check permissions against current user's security context
+    if (m_pPermissionMgr)
+    {
+        using Security::Permission;
+        using Security::HasPermission;
+
+        // Map plugin permissions to security permissions
+        Permission requiredPerms = Permission::None;
+
+        if (HasPermission(metadata.permissions, PluginPermission::FileAccess))
+            requiredPerms = requiredPerms | Permission::FileRead | Permission::FileWrite;
+
+        if (HasPermission(metadata.permissions, PluginPermission::Notifications))
+            requiredPerms = requiredPerms | Permission::AppLaunch;
+
+        if (HasPermission(metadata.permissions, PluginPermission::WindowManagement))
+            requiredPerms = requiredPerms | Permission::AppLaunch;
+
+        if (HasPermission(metadata.permissions, PluginPermission::Configuration))
+            requiredPerms = requiredPerms | Permission::SettingsWrite;
+
+        if (HasPermission(metadata.permissions, PluginPermission::Network))
+            requiredPerms = requiredPerms | Permission::AppLaunch;
+
+        if (requiredPerms != Permission::None)
+        {
+            if (!m_pPermissionMgr->CheckPermission(requiredPerms))
+            {
+                return false;
+            }
+        }
     }
 
     return true;

@@ -6,6 +6,8 @@
 #include <FileSystem/FileSystemService.hpp>
 #include <FileSystem/FileEntry.hpp>
 
+#include <Security/SecurityCommands.hpp>
+
 #include <Windows.h>
 
 #undef GetCurrentDirectory
@@ -817,7 +819,11 @@ void RegisterBuiltins(CommandRegistry& registry) noexcept
     registry.Register(std::make_unique<RmdirCommand>());
     registry.Register(std::make_unique<TouchCommand>());
     registry.Register(std::make_unique<CatCommand>());
+    registry.Register(std::make_unique<TimeCommand>());
+    registry.Register(std::make_unique<DateCommand>());
     registry.Register(std::make_unique<ExitCommand>());
+
+    Security::RegisterSecurityCommands(registry);
 }
 
 } // namespace DragonOS::Command

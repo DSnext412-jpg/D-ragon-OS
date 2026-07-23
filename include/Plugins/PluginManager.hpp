@@ -16,6 +16,7 @@
 namespace DragonOS::Events          { class EventBus; }
 namespace DragonOS::Notifications   { class NotificationManager; }
 namespace DragonOS::ExtensionPoints { class ExtensionPointManager; }
+namespace DragonOS::Security        { class PermissionManager; }
 
 namespace DragonOS::Plugins {
 
@@ -63,6 +64,7 @@ public:
     void SetMenuService(dragonos::sdk::IMenuService* s) noexcept { m_pMenuService = s; }
     void SetDialogService(dragonos::sdk::IDialogService* s) noexcept { m_pDialogService = s; }
     void SetEventBus(dragonos::sdk::IEventBus* s) noexcept { m_pEventBus = s; }
+    void SetPermissionManager(Security::PermissionManager* pm) noexcept { m_pPermissionMgr = pm; }
 
 private:
     bool InitializePlugin(dragonos::sdk::IApplication* app, PluginMetadata metadata) noexcept;
@@ -86,6 +88,7 @@ private:
     dragonos::sdk::IMenuService*         m_pMenuService{ nullptr };
     dragonos::sdk::IDialogService*       m_pDialogService{ nullptr };
     dragonos::sdk::IEventBus*            m_pEventBus{ nullptr };
+    Security::PermissionManager*         m_pPermissionMgr{ nullptr };
 
     bool m_initialized{ false };
 };

@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <shlobj.h>
 #include <shellapi.h>
+#include <io.h>
+#include <errno.h>
 
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -116,6 +118,23 @@ DirectoryResult FileSystemService::ListDirectory(const std::wstring& path) noexc
 
         entry.lastModified = FileTimeToUint64(findData.ftLastWriteTime);
 
+        // Check file access
+        if (entry.IsDirectory())
+        {
+            entry.allowedAccess = FileAccess::Read | FileAccess::Write | FileAccess::Execute;
+        }
+        else
+        {
+            errno_t err;
+            std::wstring nativePath = entry.fullPath;
+            err = _waccess_s(nativePath.c_str(), 04);
+            if (err == 0) entry.allowedAccess = entry.allowedAccess | FileAccess::Read;
+            err = _waccess_s(nativePath.c_str(), 02);
+            if (err == 0) entry.allowedAccess = entry.allowedAccess | FileAccess::Write;
+            err = _waccess_s(nativePath.c_str(), 00);
+            if (err != 0) entry.accessDenied = true;
+        }
+
         result.entries.push_back(std::move(entry));
     } while (FindNextFileW(hFind, &findData));
 
@@ -192,6 +211,11 @@ FileEntry FileSystemService::GetFileInfo(const std::wstring& path) noexcept
     entry.size = (static_cast<uint64_t>(attr.nFileSizeHigh) << 32) |
                   static_cast<uint64_t>(attr.nFileSizeLow);
     entry.lastModified = FileTimeToUint64(attr.ftLastWriteTime);
+
+    // Check file access
+    if (_waccess_s(path.c_str(), 04) == 0) entry.allowedAccess = entry.allowedAccess | FileAccess::Read;
+    if (_waccess_s(path.c_str(), 02) == 0) entry.allowedAccess = entry.allowedAccess | FileAccess::Write;
+    if (_waccess_s(path.c_str(), 00) != 0) entry.accessDenied = true;
 
     return entry;
 }

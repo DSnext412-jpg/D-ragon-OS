@@ -712,8 +712,14 @@ void ExplorerWindow::RenderFileView(Graphics::Renderer& renderer) noexcept
 
         const bool selected = std::find(m_selectedIndices.begin(), m_selectedIndices.end(), entryIdx) != m_selectedIndices.end();
         const bool hovered = (static_cast<int>(i) == m_hoveredFileIdx);
+        const bool denied = m_entries[entryIdx].accessDenied;
 
-        if (selected)
+        if (denied)
+        {
+            const auto& deniedBg = m_pTheme->GetColor(Theme::SemanticColor::Disabled);
+            renderer.FillRectangle(itemRect, Graphics::Color{ deniedBg.r, deniedBg.g, deniedBg.b, 0.3f });
+        }
+        else if (selected)
         {
             renderer.FillRectangle(itemRect, Graphics::Color{ selBgCol.r, selBgCol.g, selBgCol.b, selBgCol.a });
         }
@@ -764,7 +770,20 @@ void ExplorerWindow::RenderFileEntryGrid(Graphics::Renderer& renderer, size_t in
     // Label
     const float labelY = iconY + iconSize + 2.0f;
     const D2D1_RECT_F labelRect = D2D1::RectF(bounds.x + 2.0f, labelY, bounds.Right() - 2.0f, bounds.Bottom() - 2.0f);
-    renderer.DrawText(entry.name, labelRect, Graphics::Color{ textCol.r, textCol.g, textCol.b, textCol.a });
+
+    if (entry.accessDenied)
+    {
+        const auto& deniedCol = m_pTheme->GetColor(Theme::SemanticColor::Disabled);
+        renderer.DrawText(entry.name, labelRect, Graphics::Color{ deniedCol.r, deniedCol.g, deniedCol.b, deniedCol.a });
+
+        const std::wstring lockIcon = L"\U0001F512";
+        const D2D1_RECT_F lockRect = D2D1::RectF(bounds.Right() - 20.0f, bounds.y + 2.0f, bounds.Right() - 2.0f, bounds.y + 20.0f);
+        renderer.DrawText(lockIcon, lockRect, Graphics::Color{ 1, 0.3f, 0.3f, 1 });
+    }
+    else
+    {
+        renderer.DrawText(entry.name, labelRect, Graphics::Color{ textCol.r, textCol.g, textCol.b, textCol.a });
+    }
 }
 
 void ExplorerWindow::RenderFileEntryList(Graphics::Renderer& renderer, size_t index, const Input::Bounds& bounds) noexcept
@@ -782,7 +801,17 @@ void ExplorerWindow::RenderFileEntryList(Graphics::Renderer& renderer, size_t in
 
     // Name
     const D2D1_RECT_F nameRect = D2D1::RectF(bounds.x + 22.0f, bounds.y + 1.0f, bounds.Right() - 4.0f, bounds.Bottom() - 1.0f);
-    renderer.DrawText(entry.name, nameRect, Graphics::Color{ textCol.r, textCol.g, textCol.b, textCol.a });
+
+    if (entry.accessDenied)
+    {
+        const auto& deniedCol = m_pTheme->GetColor(Theme::SemanticColor::Disabled);
+        renderer.DrawText(entry.name, nameRect, Graphics::Color{ deniedCol.r, deniedCol.g, deniedCol.b, deniedCol.a });
+        renderer.DrawText(L"\U0001F512", D2D1::RectF(bounds.Right() - 20.0f, bounds.y + 1.0f, bounds.Right() - 2.0f, bounds.Bottom() - 1.0f), Graphics::Color{ 1, 0.3f, 0.3f, 1 });
+    }
+    else
+    {
+        renderer.DrawText(entry.name, nameRect, Graphics::Color{ textCol.r, textCol.g, textCol.b, textCol.a });
+    }
 }
 
 void ExplorerWindow::RenderFileEntryDetails(Graphics::Renderer& renderer, size_t index, const Input::Bounds& bounds) noexcept
@@ -836,7 +865,13 @@ void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
     }
     else
     {
+        size_t deniedCount = 0;
+        for (const auto& e : m_entries)
+            if (e.accessDenied) ++deniedCount;
+
         statusText = std::to_wstring(m_entries.size()) + L" items";
+        if (deniedCount > 0)
+            statusText += L" (" + std::to_wstring(deniedCount) + L" inaccessible)";
     }
 
     const D2D1_RECT_F textRect = D2D1::RectF(sb.x + 8.0f, sb.y + 2.0f, sb.Right() - 8.0f, sb.Bottom() - 2.0f);

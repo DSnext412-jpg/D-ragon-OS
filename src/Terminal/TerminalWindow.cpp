@@ -1,6 +1,8 @@
 #include <Terminal/TerminalWindow.hpp>
 #include <Terminal/TerminalTheme.hpp>
 
+#include <UI/Core/UIRenderer.hpp>
+
 #include <Command/Builtins.hpp>
 #include <FileSystem/FileSystemService.hpp>
 #include <Graphics/Renderer.hpp>
@@ -129,7 +131,14 @@ void TerminalWindow::SetDependencies(
 
     InitializeDirectWrite();
 
+    m_uiStatusBar = std::make_unique<UI::StatusBar>();
+
     m_initialized = true;
+}
+
+UI::UIRenderer TerminalWindow::MakeUIRenderer(Graphics::Renderer& renderer) const noexcept
+{
+    return UI::UIRenderer(renderer, *m_pTheme);
 }
 
 void TerminalWindow::InitializeDirectWrite() noexcept
@@ -246,6 +255,16 @@ void TerminalWindow::RecalculateLayout() noexcept
         w - pad * 2,
         m_layout.statusLineHeight
     };
+
+    if (m_uiStatusBar)
+    {
+        D2D1_RECT_F sbBounds = {
+            m_layout.statusArea.x, m_layout.statusArea.y,
+            m_layout.statusArea.Right(), m_layout.statusArea.Bottom()
+        };
+        m_uiStatusBar->Measure(D2D1::RectF(0, 0, m_layout.statusArea.width, m_layout.statusArea.height));
+        m_uiStatusBar->Arrange(sbBounds);
+    }
 
     m_visibleLines = static_cast<size_t>(
         m_layout.outputArea.height / m_charHeight);
@@ -450,20 +469,7 @@ void TerminalWindow::RenderInputLine(Graphics::Renderer& renderer) noexcept
 
 void TerminalWindow::RenderStatusLine(Graphics::Renderer& renderer) noexcept
 {
-    auto* target = renderer.GetRenderTarget();
-    if (!target) { return; }
-
-    const auto& stBounds = m_layout.statusArea;
-
-    auto* bgBrush = renderer.GetBrush(m_colors.statusLine);
-    if (bgBrush)
-    {
-        D2D1_RECT_F bg = D2D1::RectF(
-            stBounds.x, stBounds.y,
-            stBounds.x + stBounds.width,
-            stBounds.y + stBounds.height);
-        target->FillRectangle(&bg, bgBrush);
-    }
+    if (!m_uiStatusBar) return;
 
     wchar_t statusBuf[128];
     ::swprintf_s(statusBuf,
@@ -471,22 +477,10 @@ void TerminalWindow::RenderStatusLine(Graphics::Renderer& renderer) noexcept
         m_buffer.GetLineCount(),
         m_currentDirectory.c_str());
 
-    auto* textBrush = renderer.GetBrush(m_colors.statusText);
-    if (textBrush)
-    {
-        D2D1_RECT_F textRect = D2D1::RectF(
-            stBounds.x + 4,
-            stBounds.y + 1,
-            stBounds.x + stBounds.width - 4,
-            stBounds.y + stBounds.height - 1);
+    m_uiStatusBar->SetText(statusBuf);
 
-        target->DrawText(
-            statusBuf,
-            static_cast<UINT32>(::wcslen(statusBuf)),
-            m_pTextFormat,
-            &textRect,
-            textBrush);
-    }
+    auto uiRenderer = MakeUIRenderer(renderer);
+    m_uiStatusBar->Render(uiRenderer);
 }
 
 void TerminalWindow::RenderScrollbar(Graphics::Renderer& renderer) noexcept

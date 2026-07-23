@@ -4,6 +4,7 @@
 
 #include <FileSystem/FileEntry.hpp>
 #include <Input/HitTest.hpp>
+#include <UI/UI.hpp>
 
 #include <cstdint>
 #include <string>
@@ -103,7 +104,6 @@ private:
     void HandleFileViewClick(int index) noexcept;
     void HandleFileViewDoubleClick(int index) noexcept;
     void HandleAddressBarClick(int index) noexcept;
-    void HandleContextMenuClick(int index) noexcept;
     void ShowContextMenu(float px, float py, size_t entryIndex) noexcept;
     void CloseContextMenu() noexcept;
 
@@ -125,6 +125,16 @@ private:
 
     void LoadDirectory(const std::wstring& path) noexcept;
     void UpdateFileViewItems() noexcept;
+
+    // ── UI Framework integration ──────────────────────────────────────
+
+    void InitUIElements() noexcept;
+    UI::UIRenderer MakeUIRenderer(Graphics::Renderer& renderer) const noexcept;
+
+    std::unique_ptr<UI::Toolbar> m_uiToolbar;
+    std::vector<UI::Button*>     m_uiToolbarButtons;
+    std::unique_ptr<UI::StatusBar> m_uiStatusBar;
+    std::unique_ptr<UI::ContextMenu> m_uiContextMenu;
 
     // ── Sub-components state ───────────────────────────────────────────
 
@@ -171,9 +181,6 @@ private:
     // ── Context menu ───────────────────────────────────────────────────
 
     bool                 m_contextMenuOpen{ false };
-    Input::Bounds        m_contextMenuBounds{};
-    std::vector<ContextMenuItem> m_contextMenuItems;
-    int                  m_contextMenuHoveredIdx{ -1 };
     size_t               m_contextMenuTargetEntry{ static_cast<size_t>(-1) };
 
     // ── Scroll ─────────────────────────────────────────────────────────

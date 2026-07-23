@@ -32,6 +32,7 @@
 #include <Services/ServiceManager.hpp>
 #include <Session/SessionManager.hpp>
 #include <Terminal/TerminalSystem.hpp>
+#include <Settings/SettingsSystem.hpp>
 #include <Theme/ThemeManager.hpp>
 #include <WindowManager/WindowManager.hpp>
 
@@ -660,6 +661,11 @@ bool Engine::Initialize(
         windowManager, *themeMgr, *animMgr, *fsService, *inputMgr);
     terminalSys->SetMouseManager(inputMgr->GetMouseManager());
 
+    // ── Register SettingsSystem ─────────────────────────────────────────
+    auto* settingsSys = m_pSystemManager->Register<Settings::SettingsSystem>(
+        windowManager, *themeMgr);
+    settingsSys->SetMouseManager(inputMgr->GetMouseManager());
+
     // ── Register StartMenuSystem (renders above taskbar, below debug) ────
     auto* startMenuSys = m_pSystemManager->Register<StartMenuSystem>(
         *themeMgr, *inputMgr, *animMgr, *appRegistry);
@@ -714,6 +720,7 @@ bool Engine::Initialize(
             }
             else if (appInfo->name == L"Settings" || appInfo->name == L"Settings")
             {
+                settingsSys->OpenSettings();
                 appMgr->RegisterApplication(
                     appInfo->id, appInfo->name, appInfo->displayName);
                 procMgr->SpawnProcess(appInfo->name + L".exe");

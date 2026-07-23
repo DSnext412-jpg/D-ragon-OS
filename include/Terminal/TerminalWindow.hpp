@@ -11,6 +11,8 @@
 #include <d2d1.h>
 #include <dwrite.h>
 
+#include <UI/UI.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -68,6 +70,8 @@ private:
     void RenderInputLine(Graphics::Renderer& renderer) noexcept;
     void RenderStatusLine(Graphics::Renderer& renderer) noexcept;
     void RenderScrollbar(Graphics::Renderer& renderer) noexcept;
+
+    UI::UIRenderer MakeUIRenderer(Graphics::Renderer& renderer) const noexcept;
 
     void ExecuteCommand() noexcept;
     void HandleInput() noexcept;
@@ -133,6 +137,9 @@ private:
     FileSystem::FileSystemService* m_pFS{ nullptr };
 
     bool                          m_initialized{ false };
+
+    // UI Framework integration
+    std::unique_ptr<UI::StatusBar> m_uiStatusBar;
 };
 
 } // namespace DragonOS::Terminal

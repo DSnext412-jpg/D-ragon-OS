@@ -3,6 +3,7 @@
 #include <FileSystem/FileSystemService.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Input/MouseManager.hpp>
+#include <UI/Core/UIRenderer.hpp>
 #include <Theme/ThemeManager.hpp>
 #include <Theme/ThemeMetrics.hpp>
 #include <Theme/ThemePalette.hpp>
@@ -79,11 +80,64 @@ void ExplorerWindow::SetDependencies(
         m_navPaneEntries.push_back(std::move(entry));
     }
 
+    // ── Initialize UI Framework elements ──────────────────────────
+    InitUIElements();
+
     // Start at Desktop
     const auto desktopPath = m_pFS->GetKnownFolderPath(FileSystem::KnownFolder::Desktop);
     NavigateTo(desktopPath);
 
     m_initialized = true;
+}
+
+// ============================================================================
+//  UI Framework Element Initialization
+// ============================================================================
+
+void ExplorerWindow::InitUIElements() noexcept
+{
+    // ── Toolbar with buttons ──────────────────────────────────────────
+    m_uiToolbar = std::make_unique<UI::Toolbar>();
+    m_uiToolbarButtons.clear();
+
+    struct ToolbarButtonDef {
+        std::wstring text;
+        wchar_t icon;
+        ExplorerHitRegion region;
+    };
+
+    const ToolbarButtonDef defs[] = {
+        {L"", 0x25C0, ExplorerHitRegion::ToolbarBack},
+        {L"", 0x25B6, ExplorerHitRegion::ToolbarForward},
+        {L"", 0x2191, ExplorerHitRegion::ToolbarUp},
+        {L"", 0x21BB, ExplorerHitRegion::ToolbarRefresh},
+        {L"", 0x2795, ExplorerHitRegion::ToolbarNewFolder},
+        {L"", 0x1F4CB, ExplorerHitRegion::ToolbarCopy},
+        {L"", 0x1F4CC, ExplorerHitRegion::ToolbarPaste},
+        {L"", 0x2716, ExplorerHitRegion::ToolbarDelete},
+        {L"", 0x1F4D1, ExplorerHitRegion::ToolbarRename},
+        {L"", 0x2699, ExplorerHitRegion::ToolbarProperties},
+    };
+
+    for (const auto& def : defs)
+    {
+        auto* btn = m_uiToolbar->AddButton(def.text, def.icon,
+            [this, region = def.region]() {
+                HandleToolbarClick(region);
+            });
+        m_uiToolbarButtons.push_back(btn);
+    }
+
+    // ── Status bar ────────────────────────────────────────────────────
+    m_uiStatusBar = std::make_unique<UI::StatusBar>();
+
+    // ── Context menu ──────────────────────────────────────────────────
+    m_uiContextMenu = std::make_unique<UI::ContextMenu>();
+}
+
+UI::UIRenderer ExplorerWindow::MakeUIRenderer(Graphics::Renderer& renderer) const noexcept
+{
+    return UI::UIRenderer(renderer, *m_pTheme);
 }
 
 // ============================================================================
@@ -351,6 +405,27 @@ void ExplorerWindow::RecalculateLayout() noexcept
         statusH
     };
 
+    // ── UI Framework element layout ───────────────────────────────────
+    if (m_uiToolbar)
+    {
+        D2D1_RECT_F tbBounds = {
+            cx + 4.0f, cy + 4.0f,
+            cx + cw - 8.0f, cy + 4.0f + toolbarH
+        };
+        m_uiToolbar->Measure(D2D1::RectF(0, 0, cw - 8.0f, toolbarH));
+        m_uiToolbar->Arrange(tbBounds);
+    }
+
+    if (m_uiStatusBar)
+    {
+        D2D1_RECT_F sbBounds = {
+            m_layout.statusBarArea.x, m_layout.statusBarArea.y,
+            m_layout.statusBarArea.Right(), m_layout.statusBarArea.Bottom()
+        };
+        m_uiStatusBar->Measure(D2D1::RectF(0, 0, cw - 8.0f, statusH));
+        m_uiStatusBar->Arrange(sbBounds);
+    }
+
     m_layout.scrollOffset = m_scrollOffset;
 }
 
@@ -387,25 +462,37 @@ void ExplorerWindow::ProcessInput() noexcept
     const auto pos = m_pMouse->GetPosition();
     const auto& client = m_layout.clientArea;
 
-    // Check if click is within this window's client area
-    if (m_contextMenuOpen)
+    // Handle context menu via UI framework
+    if (m_contextMenuOpen && m_uiContextMenu)
     {
-        if (m_contextMenuBounds.Contains(pos.x, pos.y))
-        {
-            m_contextMenuHoveredIdx = HitTestContextMenu(pos.x, pos.y);
+        UI::UIEvent cmEvent;
+        cmEvent.x = pos.x;
+        cmEvent.y = pos.y;
+        cmEvent.button = Input::MouseButton::Left;
 
-            if (m_pMouse->WasLeftClicked() && m_contextMenuHoveredIdx >= 0)
+        // Check if mouse is over the context menu
+        UI::UIElement* hit = m_uiContextMenu->HitTest(pos.x, pos.y);
+        if (hit)
+        {
+            // Mouse move over context menu
+            cmEvent.type = UI::UIEventType::MouseMove;
+            m_uiContextMenu->OnEvent(cmEvent);
+
+            if (m_pMouse->WasLeftClicked())
             {
-                HandleContextMenuClick(m_contextMenuHoveredIdx);
-                return;
+                cmEvent.type = UI::UIEventType::Click;
+                m_uiContextMenu->OnEvent(cmEvent);
+                CloseContextMenu();
+                return; // Click handled
             }
         }
-        else if (m_pMouse->WasLeftClicked())
+        else
         {
-            CloseContextMenu();
+            if (m_pMouse->WasLeftClicked())
+            {
+                CloseContextMenu();
+            }
         }
-
-        // Still process toolbar while context menu is open (back/forward etc.)
     }
 
     if (!client.Contains(pos.x, pos.y))
@@ -551,39 +638,40 @@ void ExplorerWindow::Render(Graphics::Renderer& renderer) noexcept
 }
 
 // ============================================================================
-//  Toolbar
+//  Toolbar (UI Framework)
 // ============================================================================
 
 void ExplorerWindow::RenderToolbar(Graphics::Renderer& renderer) noexcept
 {
-    const ExplorerLayout& lay = m_layout;
+    if (!m_uiToolbar || !m_pTheme) return;
 
-    RenderToolbarButton(renderer, lay.btnBack,       L"\u25C0",  m_toolbarHover == ExplorerHitRegion::ToolbarBack,       m_toolbarPressed == ExplorerHitRegion::ToolbarBack);
-    RenderToolbarButton(renderer, lay.btnForward,    L"\u25B6",  m_toolbarHover == ExplorerHitRegion::ToolbarForward,    m_toolbarPressed == ExplorerHitRegion::ToolbarForward);
-    RenderToolbarButton(renderer, lay.btnUp,         L"\u2191",  m_toolbarHover == ExplorerHitRegion::ToolbarUp,         m_toolbarPressed == ExplorerHitRegion::ToolbarUp);
-    RenderToolbarButton(renderer, lay.btnRefresh,    L"\u21BB",  m_toolbarHover == ExplorerHitRegion::ToolbarRefresh,    m_toolbarPressed == ExplorerHitRegion::ToolbarRefresh);
-    RenderToolbarButton(renderer, lay.btnNewFolder,  L"+",       m_toolbarHover == ExplorerHitRegion::ToolbarNewFolder,  m_toolbarPressed == ExplorerHitRegion::ToolbarNewFolder);
-    RenderToolbarButton(renderer, lay.btnCopy,       L"C",       m_toolbarHover == ExplorerHitRegion::ToolbarCopy,       m_toolbarPressed == ExplorerHitRegion::ToolbarCopy);
-    RenderToolbarButton(renderer, lay.btnPaste,      L"P",       m_toolbarHover == ExplorerHitRegion::ToolbarPaste,      m_toolbarPressed == ExplorerHitRegion::ToolbarPaste);
-    RenderToolbarButton(renderer, lay.btnDelete,     L"\u2716",  m_toolbarHover == ExplorerHitRegion::ToolbarDelete,     m_toolbarPressed == ExplorerHitRegion::ToolbarDelete);
-    RenderToolbarButton(renderer, lay.btnRename,     L"R",       m_toolbarHover == ExplorerHitRegion::ToolbarRename,     m_toolbarPressed == ExplorerHitRegion::ToolbarRename);
-    RenderToolbarButton(renderer, lay.btnProperties, L"\u2699",  m_toolbarHover == ExplorerHitRegion::ToolbarProperties, m_toolbarPressed == ExplorerHitRegion::ToolbarProperties);
-}
+    // Sync button states from toolbar hit region tracking
+    const ExplorerHitRegion regions[] = {
+        ExplorerHitRegion::ToolbarBack, ExplorerHitRegion::ToolbarForward,
+        ExplorerHitRegion::ToolbarUp, ExplorerHitRegion::ToolbarRefresh,
+        ExplorerHitRegion::ToolbarNewFolder, ExplorerHitRegion::ToolbarCopy,
+        ExplorerHitRegion::ToolbarPaste, ExplorerHitRegion::ToolbarDelete,
+        ExplorerHitRegion::ToolbarRename, ExplorerHitRegion::ToolbarProperties,
+    };
 
-void ExplorerWindow::RenderToolbarButton(Graphics::Renderer& renderer, const Input::Bounds& bounds, const std::wstring& label, bool hovered, bool pressed) noexcept
-{
-    const D2D1_RECT_F rect = D2D1::RectF(bounds.x, bounds.y, bounds.Right(), bounds.Bottom());
-
-    if (hovered || pressed)
+    for (size_t i = 0; i < m_uiToolbarButtons.size() && i < 10; ++i) // 10 toolbar buttons
     {
-        const auto& hoverCol = m_pTheme->GetColor(Theme::SemanticColor::Hover);
-        const Graphics::Color hc{ hoverCol.r, hoverCol.g, hoverCol.b, pressed ? hoverCol.a * 2.0f : hoverCol.a };
-        renderer.FillRectangle(rect, hc);
+        auto* btn = m_uiToolbarButtons[i];
+        if (!btn) continue;
+
+        bool isHover = (m_toolbarHover == regions[i]);
+        bool isPressed = (m_toolbarPressed == regions[i]);
+
+        if (isPressed)
+            btn->SetState(UI::ElementState::Pressed);
+        else if (isHover)
+            btn->SetState(UI::ElementState::Hover);
+        else
+            btn->SetState(UI::ElementState::Normal);
     }
 
-    const auto& textCol = m_pTheme->GetColor(Theme::SemanticColor::TextPrimary);
-    const D2D1_RECT_F textRect = D2D1::RectF(bounds.x + 2.0f, bounds.y + 2.0f, bounds.Right() - 2.0f, bounds.Bottom() - 2.0f);
-    renderer.DrawText(label, textRect, Graphics::Color{ textCol.r, textCol.g, textCol.b, textCol.a });
+    auto uiRenderer = MakeUIRenderer(renderer);
+    m_uiToolbar->Render(uiRenderer);
 }
 
 // ============================================================================
@@ -850,12 +938,7 @@ void ExplorerWindow::RenderFileEntryDetails(Graphics::Renderer& renderer, size_t
 
 void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
 {
-    const auto& sb = m_layout.statusBarArea;
-    const auto& statusBgCol = m_pTheme->GetColor(Theme::SemanticColor::WindowTitleBar);
-    const auto& textCol = m_pTheme->GetColor(Theme::SemanticColor::TextSecondary);
-
-    const D2D1_RECT_F statusRect = D2D1::RectF(sb.x, sb.y, sb.Right(), sb.Bottom());
-    renderer.FillRectangle(statusRect, Graphics::Color{ statusBgCol.r, statusBgCol.g, statusBgCol.b, statusBgCol.a });
+    if (!m_uiStatusBar || !m_pTheme) return;
 
     // Build status text
     std::wstring statusText;
@@ -874,8 +957,10 @@ void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
             statusText += L" (" + std::to_wstring(deniedCount) + L" inaccessible)";
     }
 
-    const D2D1_RECT_F textRect = D2D1::RectF(sb.x + 8.0f, sb.y + 2.0f, sb.Right() - 8.0f, sb.Bottom() - 2.0f);
-    renderer.DrawText(statusText, textRect, Graphics::Color{ textCol.r, textCol.g, textCol.b, textCol.a });
+    m_uiStatusBar->SetText(statusText);
+
+    auto uiRenderer = MakeUIRenderer(renderer);
+    m_uiStatusBar->Render(uiRenderer);
 }
 
 // ============================================================================
@@ -884,108 +969,73 @@ void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
 
 void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noexcept
 {
-    m_contextMenuOpen = true;
+    if (!m_uiContextMenu) return;
+
     m_contextMenuTargetEntry = entryIndex;
-    m_contextMenuItems.clear();
+    m_uiContextMenu->ClearItems();
 
     if (entryIndex < m_entries.size())
     {
-        m_contextMenuItems.push_back({ L"Open", true, false });
-        m_contextMenuItems.push_back({ L"", false, true });
-        m_contextMenuItems.push_back({ L"Copy", true, false });
-        m_contextMenuItems.push_back({ L"Cut", true, false });
-        m_contextMenuItems.push_back({ L"Delete", true, false });
-        m_contextMenuItems.push_back({ L"Rename", true, false });
-        m_contextMenuItems.push_back({ L"", false, true });
-        m_contextMenuItems.push_back({ L"Properties", true, false });
+        m_uiContextMenu->AddItem(L"Open", [this]() {
+            if (m_contextMenuTargetEntry < m_entries.size())
+            {
+                const auto& entry = m_entries[m_contextMenuTargetEntry];
+                if (entry.IsDirectory()) NavigateTo(entry.fullPath);
+            }
+        });
+        m_uiContextMenu->AddSeparator();
+        m_uiContextMenu->AddItem(L"Copy");
+        m_uiContextMenu->AddItem(L"Cut");
+        m_uiContextMenu->AddItem(L"Delete", [this]() {
+            if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
+            {
+                const auto& entry = m_entries[m_contextMenuTargetEntry];
+                if (entry.IsDirectory())
+                    (void)m_pFS->EraseDirectory(entry.fullPath, true);
+                else
+                    (void)m_pFS->EraseFile(entry.fullPath);
+                Refresh();
+            }
+        });
+        m_uiContextMenu->AddItem(L"Rename");
+        m_uiContextMenu->AddSeparator();
+        m_uiContextMenu->AddItem(L"Properties");
     }
     else
     {
-        // Background context menu
-        m_contextMenuItems.push_back({ L"New Folder", true, false });
-        m_contextMenuItems.push_back({ L"", false, true });
-        m_contextMenuItems.push_back({ L"Paste", true, false });
-        m_contextMenuItems.push_back({ L"", false, true });
-        m_contextMenuItems.push_back({ L"Properties", true, false });
+        m_uiContextMenu->AddItem(L"New Folder", [this]() {
+            if (m_pFS)
+            {
+                (void)m_pFS->CreateFolder(m_pFS->Combine(m_currentPath, L"New Folder"));
+                Refresh();
+            }
+        });
+        m_uiContextMenu->AddSeparator();
+        m_uiContextMenu->AddItem(L"Paste");
+        m_uiContextMenu->AddSeparator();
+        m_uiContextMenu->AddItem(L"Properties");
     }
 
-    const float menuW = 180.0f;
-    const float itemH = 28.0f;
-    const float menuH = 8.0f + m_contextMenuItems.size() * itemH;
-
-    m_contextMenuBounds = { px, py, menuW, menuH };
+    m_uiContextMenu->ShowAt(px, py);
+    m_contextMenuOpen = true;
 }
 
 void ExplorerWindow::CloseContextMenu() noexcept
 {
+    if (m_uiContextMenu)
+    {
+        m_uiContextMenu->Close();
+    }
     m_contextMenuOpen = false;
-    m_contextMenuItems.clear();
-    m_contextMenuHoveredIdx = -1;
     m_contextMenuTargetEntry = static_cast<size_t>(-1);
 }
 
 void ExplorerWindow::RenderContextMenu(Graphics::Renderer& renderer) noexcept
 {
-    if (!m_contextMenuOpen) { return; }
+    if (!m_uiContextMenu || !m_uiContextMenu->IsOpen() || !m_pTheme) return;
 
-    const auto& bgCol = m_pTheme->GetColor(Theme::SemanticColor::WindowBackground);
-    const auto& borderCol = m_pTheme->GetColor(Theme::SemanticColor::WindowBorder);
-    const auto& textCol = m_pTheme->GetColor(Theme::SemanticColor::TextPrimary);
-    const auto& hoverCol = m_pTheme->GetColor(Theme::SemanticColor::Hover);
-
-    const D2D1_RECT_F menuRect = D2D1::RectF(
-        m_contextMenuBounds.x, m_contextMenuBounds.y,
-        m_contextMenuBounds.Right(), m_contextMenuBounds.Bottom());
-
-    // Background
-    renderer.FillRectangle(menuRect, Graphics::Color{ bgCol.r, bgCol.g, bgCol.b, bgCol.a });
-    renderer.DrawRectangle(menuRect, Graphics::Color{ borderCol.r, borderCol.g, borderCol.b, borderCol.a }, 1.0f);
-
-    float itemY = m_contextMenuBounds.y + 4.0f;
-    const float itemH = 28.0f;
-
-    for (int i = 0; i < static_cast<int>(m_contextMenuItems.size()); ++i)
-    {
-        const auto& item = m_contextMenuItems[i];
-
-        if (item.isSeparator)
-        {
-            // Draw separator line
-            const D2D1_RECT_F sepRect = D2D1::RectF(
-                m_contextMenuBounds.x + 8.0f, itemY + itemH / 2.0f,
-                m_contextMenuBounds.Right() - 8.0f, itemY + itemH / 2.0f + 1.0f);
-            renderer.FillRectangle(sepRect, Graphics::Color{ borderCol.r, borderCol.g, borderCol.b, borderCol.a * 0.5f });
-            itemY += itemH;
-            continue;
-        }
-
-        const D2D1_RECT_F itemRect = D2D1::RectF(
-            m_contextMenuBounds.x + 2.0f, itemY,
-            m_contextMenuBounds.Right() - 2.0f, itemY + itemH);
-
-        // Hover highlight
-        if (i == m_contextMenuHoveredIdx)
-        {
-            renderer.FillRectangle(itemRect, Graphics::Color{ hoverCol.r, hoverCol.g, hoverCol.b, hoverCol.a });
-        }
-
-        // Item text
-        const D2D1_RECT_F textRect = D2D1::RectF(
-            m_contextMenuBounds.x + 12.0f, itemY + 2.0f,
-            m_contextMenuBounds.Right() - 8.0f, itemY + itemH - 2.0f);
-
-        if (item.isEnabled)
-        {
-            renderer.DrawText(item.label, textRect, Graphics::Color{ textCol.r, textCol.g, textCol.b, textCol.a });
-        }
-        else
-        {
-            const auto& disabledCol = m_pTheme->GetColor(Theme::SemanticColor::Disabled);
-            renderer.DrawText(item.label, textRect, Graphics::Color{ disabledCol.r, disabledCol.g, disabledCol.b, disabledCol.a });
-        }
-
-        itemY += itemH;
-    }
+    auto uiRenderer = MakeUIRenderer(renderer);
+    m_uiContextMenu->Render(uiRenderer);
 }
 
 // ============================================================================
@@ -1047,32 +1097,6 @@ int ExplorerWindow::HitTestFileView(float px, float py) const noexcept
             return i;
         }
     }
-    return -1;
-}
-
-int ExplorerWindow::HitTestContextMenu(float px, float py) const noexcept
-{
-    if (!m_contextMenuOpen) { return -1; }
-    if (!m_contextMenuBounds.Contains(px, py)) { return -1; }
-
-    const float itemH = 28.0f;
-    float itemY = m_contextMenuBounds.y + 4.0f;
-
-    for (int i = 0; i < static_cast<int>(m_contextMenuItems.size()); ++i)
-    {
-        if (m_contextMenuItems[i].isSeparator)
-        {
-            itemY += itemH;
-            continue;
-        }
-
-        if (py >= itemY && py < itemY + itemH)
-        {
-            return i;
-        }
-        itemY += itemH;
-    }
-
     return -1;
 }
 
@@ -1198,54 +1222,6 @@ void ExplorerWindow::HandleFileViewDoubleClick(int index) noexcept
 void ExplorerWindow::HandleAddressBarClick(int /*index*/) noexcept
 {
     // Future: enter editable path mode
-}
-
-void ExplorerWindow::HandleContextMenuClick(int index) noexcept
-{
-    if (index < 0 || index >= static_cast<int>(m_contextMenuItems.size())) { return; }
-    const auto& item = m_contextMenuItems[index];
-    if (item.isSeparator || !item.isEnabled) { return; }
-
-    CloseContextMenu();
-
-    if (m_contextMenuTargetEntry < m_entries.size())
-    {
-        const auto& entry = m_entries[m_contextMenuTargetEntry];
-
-        if (item.label == L"Open" && entry.IsDirectory())
-        {
-            NavigateTo(entry.fullPath);
-        }
-        else if (item.label == L"Delete" && m_pFS)
-        {
-            if (entry.IsDirectory())
-            {
-                (void)m_pFS->EraseDirectory(entry.fullPath, true);
-            }
-            else
-            {
-                (void)m_pFS->EraseFile(entry.fullPath);
-            }
-            Refresh();
-        }
-        else if (item.label == L"Copy" || item.label == L"Cut" ||
-                 item.label == L"Rename" || item.label == L"Properties")
-        {
-            // Placeholder
-        }
-    }
-    else
-    {
-        if (item.label == L"New Folder" && m_pFS)
-        {
-            (void)m_pFS->CreateFolder(m_pFS->Combine(m_currentPath, L"New Folder"));
-            Refresh();
-        }
-        else if (item.label == L"Properties")
-        {
-            // Placeholder
-        }
-    }
 }
 
 // ============================================================================

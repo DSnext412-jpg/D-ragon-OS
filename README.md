@@ -1432,8 +1432,6 @@ It motivates me to keep improving D'Ragon OS and building more open-source proje
 
 ### *Build the Future. One Window at a Time.*
 
-**Made with ❤️ by Dipak Sonawane**
-
 *"Every great operating system begins with an idea—and grows through persistence."*
 
 </div>

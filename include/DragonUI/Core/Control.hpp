@@ -27,8 +27,8 @@ public:
     [[nodiscard]] ControlState GetControlState() const noexcept { return m_controlState; }
     void SetControlState(ControlState state) noexcept { m_controlState = state; InvalidateVisual(); }
 
-    [[nodiscard]] virtual bool OnMouseEvent(const MouseEventArgs& args) noexcept;
-    [[nodiscard]] virtual bool OnKeyEvent(const KeyEventArgs& args) noexcept;
+    [[nodiscard]] virtual bool OnMouseEvent(EventType type, const MouseEventArgs& args) noexcept;
+    [[nodiscard]] virtual bool OnKeyEvent(EventType type, const KeyEventArgs& args) noexcept;
     [[nodiscard]] virtual bool OnFocusEvent(const FocusEventArgs& args) noexcept;
 
 protected:

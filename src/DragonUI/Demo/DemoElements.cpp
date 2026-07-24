@@ -35,12 +35,20 @@ void DemoPanel::ArrangeChildren(const LayoutSlot& finalSlot) noexcept
         if (child->GetVisibility() != Visibility::Visible) continue;
 
         auto ds = child->GetDesiredSize();
+        auto margin = child->GetMargin();
         float childW = (std::min)(ds.width, finalSlot.width);
         float childH = (std::min)(ds.height, finalSlot.height);
 
-        LayoutSlot childSlot{finalSlot.x, y, childW, childH};
+        float xOff = finalSlot.x + margin.left;
+        float yOff = y + margin.top;
+        float w = childW - margin.Horizontal();
+        float h = childH - margin.Vertical();
+        if (w < 0) w = 0;
+        if (h < 0) h = 0;
+
+        LayoutSlot childSlot{xOff, yOff, w, h};
         child->Arrange(childSlot);
-        y += childH + 4;
+        y = yOff + h + margin.bottom + 4;
     }
 }
 
@@ -141,7 +149,7 @@ void DemoButton::Render(RenderContext& ctx) noexcept
     }
 }
 
-bool DemoButton::OnMouseEvent(const MouseEventArgs& /*args*/) noexcept
+bool DemoButton::OnMouseEvent(EventType /*type*/, const MouseEventArgs& /*args*/) noexcept
 {
     return true;
 }

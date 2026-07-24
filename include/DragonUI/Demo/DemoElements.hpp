@@ -43,7 +43,7 @@ public:
     DesiredSize MeasureOverride(const LayoutSlot& available) noexcept override;
     void Render(RenderContext& ctx) noexcept override;
 
-    bool OnMouseEvent(const MouseEventArgs& args) noexcept override;
+    bool OnMouseEvent(EventType type, const MouseEventArgs& args) noexcept override;
 
 private:
     std::wstring m_text;

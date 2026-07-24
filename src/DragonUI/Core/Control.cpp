@@ -13,12 +13,12 @@ bool Control::OnEvent(const EventArgs& args) noexcept
     case EventType::MouseUp:
     case EventType::Click:
     case EventType::DoubleClick:
-        return OnMouseEvent(args.mouse);
+        return OnMouseEvent(args.type, args.mouse);
 
     case EventType::KeyDown:
     case EventType::KeyUp:
     case EventType::TextInput:
-        return OnKeyEvent(args.key);
+        return OnKeyEvent(args.type, args.key);
 
     case EventType::GotFocus:
     case EventType::LostFocus:
@@ -29,12 +29,12 @@ bool Control::OnEvent(const EventArgs& args) noexcept
     }
 }
 
-bool Control::OnMouseEvent(const MouseEventArgs& /*args*/) noexcept
+bool Control::OnMouseEvent(EventType /*type*/, const MouseEventArgs& /*args*/) noexcept
 {
     return false;
 }
 
-bool Control::OnKeyEvent(const KeyEventArgs& /*args*/) noexcept
+bool Control::OnKeyEvent(EventType /*type*/, const KeyEventArgs& /*args*/) noexcept
 {
     return false;
 }

@@ -5,6 +5,7 @@
 #include <Theme/ThemePalette.hpp>
 #include <Theme/ThemeTypography.hpp>
 #include <d2d1.h>
+#include <dwrite.h>
 #include <stack>
 
 namespace DragonOS::DragonUI {
@@ -53,6 +54,53 @@ public:
 
     void DrawText(std::wstring_view text, const D2D1_RECT_F& layoutRect, Theme::SemanticColor token) noexcept {
         m_renderer->DrawText(text, ScaleRect(layoutRect), Resolve(token));
+    }
+
+    void FillRoundedRect(const D2D1_RECT_F& rect, Theme::SemanticColor token, float radiusX, float radiusY, float opacity = 1.0f) noexcept {
+        auto scaled = ScaleRect(rect);
+        auto color = Resolve(token);
+        auto* brush = m_renderer->GetBrush(color);
+        if (!brush) return;
+        auto* rt = m_renderer->GetRenderTarget();
+        if (!rt) return;
+        D2D1_ROUNDED_RECT rr{scaled, radiusX * m_dpiScale, radiusY * m_dpiScale};
+        rt->FillRoundedRectangle(&rr, brush);
+        if (opacity < 1.0f)
+        {
+            brush->SetOpacity(opacity);
+            rt->FillRoundedRectangle(&rr, brush);
+            brush->SetOpacity(1.0f);
+        }
+    }
+
+    void DrawRoundedRect(const D2D1_RECT_F& rect, Theme::SemanticColor token, float radiusX, float radiusY, float strokeWidth = 1.0f) noexcept {
+        auto scaled = ScaleRect(rect);
+        auto color = Resolve(token);
+        auto* brush = m_renderer->GetBrush(color);
+        if (!brush) return;
+        auto* rt = m_renderer->GetRenderTarget();
+        if (!rt) return;
+        D2D1_ROUNDED_RECT rr{scaled, radiusX * m_dpiScale, radiusY * m_dpiScale};
+        rt->DrawRoundedRectangle(&rr, brush, strokeWidth * m_dpiScale);
+    }
+
+    [[nodiscard]] D2D1_SIZE_F MeasureText(std::wstring_view text, float maxWidth = 10000.0f) const noexcept {
+        auto* dwrite = m_renderer->GetDWriteFactory();
+        auto* fmt = m_renderer->GetTextFormat();
+        if (!dwrite || !fmt || text.empty()) return {0, 0};
+
+        IDWriteTextLayout* layout = nullptr;
+        HRESULT hr = dwrite->CreateTextLayout(
+            text.data(), static_cast<UINT32>(text.size()),
+            fmt, maxWidth, 10000.0f, &layout);
+        if (FAILED(hr) || !layout) return {0, 0};
+
+        DWRITE_TEXT_METRICS metrics;
+        hr = layout->GetMetrics(&metrics);
+        layout->Release();
+        if (FAILED(hr)) return {0, 0};
+
+        return {metrics.widthIncludingTrailingWhitespace, metrics.height};
     }
 
 private:

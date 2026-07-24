@@ -6,6 +6,12 @@
 
 namespace DragonOS::DragonUI {
 
+class UIProgressBar;
+
+}
+
+namespace DragonOS::DragonUI {
+
 class DragonUISystem final : public Engine::System {
 public:
     DragonUISystem() noexcept = default;
@@ -22,6 +28,7 @@ public:
 private:
     std::unique_ptr<WindowHost> m_host;
     Input::InputManager* m_input{};
+    UIProgressBar* m_progressBar{};
 };
 
 } // namespace

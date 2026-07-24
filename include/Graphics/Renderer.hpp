@@ -122,6 +122,15 @@ public:
     /// @note  Safe to call before Initialize() (stores values for later).
     void SetDefaultTextFormat(std::wstring_view family, float size) noexcept;
 
+    /// @brief  Direct access to the DirectWrite factory.
+    [[nodiscard]] IDWriteFactory* GetDWriteFactory() const noexcept { return m_pDWriteFactory; }
+
+    /// @brief  Direct access to the default text format.
+    [[nodiscard]] IDWriteTextFormat* GetTextFormat() const noexcept { return m_pTextFormat; }
+
+    /// @brief  Direct access to the WIC factory.
+    [[nodiscard]] IWICImagingFactory* GetWICFactory() const noexcept { return m_pWICFactory; }
+
 private:
     // ── Factory pointers (raw COM; managed manually) ───────────────────
 

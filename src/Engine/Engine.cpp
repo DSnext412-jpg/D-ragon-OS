@@ -82,7 +82,10 @@ public:
 
     void Shutdown() noexcept override {}
 
-    void Update(float /*deltaTime*/) noexcept override {}
+    void Update(float deltaTime) noexcept override
+    {
+        m_manager.Update(deltaTime);
+    }
 
     void Render(EngineContext& ctx) noexcept override
     {
@@ -701,7 +704,7 @@ bool Engine::Initialize(
 
     // Wiring: StartMenu launch callback → app launcher
     startMenuSys->GetController().SetLaunchAppCallback(
-        [explorerSys, terminalSys, devToolsSys, appMgr, procMgr](const Apps::AppInfo* appInfo)
+        [explorerSys, terminalSys, devToolsSys, settingsSys, appMgr, procMgr](const Apps::AppInfo* appInfo)
         {
             if (!appInfo) { return; }
             if (appInfo->name == L"Explorer" || appInfo->name == L"explorer")

@@ -106,6 +106,12 @@ int Application::Run() noexcept
 
     while (m_isRunning)
     {
+        // ── 0. Clear previous frame's input buffers ─────────────────────
+        auto* inputMgr = m_pEngine
+            ? m_pEngine->GetSystemManager().Find<DragonOS::Input::InputManager>()
+            : nullptr;
+        if (inputMgr) { inputMgr->EndFrame(); }
+
         // ── 1. Process all pending Win32 messages (non-blocking) ─────────
         while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
         {

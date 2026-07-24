@@ -48,6 +48,7 @@ bool SecuritySystem::Initialize(Engine::EngineContext& ctx) noexcept
     m_pLoginScreen->SetOnLoginCallback(
         [this](UserId uid)
         {
+            (void)uid;
             m_pUserMgr->SetLoginScreenVisible(false);
         });
 

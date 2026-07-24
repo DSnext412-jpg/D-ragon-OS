@@ -1,5 +1,6 @@
 #pragma once
 #include <UI/Core/UIElement.hpp>
+#include <UI/Core/UILayout.hpp>
 #include <string>
 
 namespace DragonOS::UI {

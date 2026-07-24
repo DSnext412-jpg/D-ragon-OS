@@ -165,7 +165,7 @@ void TransitionManager::FadeIn(UIElement* target, float duration) noexcept
     prop.to = 1.0f;
     prop.duration = duration;
     prop.easing = Easing::EaseOut;
-    Animate(target, prop);
+    (void)Animate(target, prop);
 }
 
 void TransitionManager::FadeOut(UIElement* target, float duration) noexcept
@@ -176,7 +176,7 @@ void TransitionManager::FadeOut(UIElement* target, float duration) noexcept
     prop.to = 0.0f;
     prop.duration = duration;
     prop.easing = Easing::EaseOut;
-    Animate(target, prop);
+    (void)Animate(target, prop);
 }
 
 void TransitionManager::SlideIn(UIElement* target, float fromX, float fromY, float duration) noexcept
@@ -187,7 +187,7 @@ void TransitionManager::SlideIn(UIElement* target, float fromX, float fromY, flo
     px.to = 0.0f;
     px.duration = duration;
     px.easing = Easing::EaseOut;
-    Animate(target, px);
+    (void)Animate(target, px);
 
     AnimatedProperty py;
     py.type = AnimatedProperty::OffsetY;
@@ -195,7 +195,7 @@ void TransitionManager::SlideIn(UIElement* target, float fromX, float fromY, flo
     py.to = 0.0f;
     py.duration = duration;
     py.easing = Easing::EaseOut;
-    Animate(target, py);
+    (void)Animate(target, py);
 }
 
 void TransitionManager::ScaleIn(UIElement* target, float duration) noexcept
@@ -206,7 +206,7 @@ void TransitionManager::ScaleIn(UIElement* target, float duration) noexcept
     prop.to = 1.0f;
     prop.duration = duration;
     prop.easing = Easing::BounceOut;
-    Animate(target, prop);
+    (void)Animate(target, prop);
 }
 
 void TransitionManager::AnimateStateTransition(UIElement* target, ElementState oldState, ElementState newState) noexcept
@@ -221,7 +221,7 @@ void TransitionManager::AnimateStateTransition(UIElement* target, ElementState o
         s.to = 1.05f;
         s.duration = 0.2f;
         s.easing = Easing::EaseOut;
-        Animate(target, s);
+        (void)Animate(target, s);
     }
     else if (oldState == ElementState::Hover && newState == ElementState::Normal)
     {
@@ -231,7 +231,7 @@ void TransitionManager::AnimateStateTransition(UIElement* target, ElementState o
         s.to = 1.0f;
         s.duration = 0.2f;
         s.easing = Easing::EaseOut;
-        Animate(target, s);
+        (void)Animate(target, s);
     }
     else if (oldState == ElementState::Normal && newState == ElementState::Pressed)
     {
@@ -241,7 +241,7 @@ void TransitionManager::AnimateStateTransition(UIElement* target, ElementState o
         s.to = 0.95f;
         s.duration = 0.1f;
         s.easing = Easing::EaseIn;
-        Animate(target, s);
+        (void)Animate(target, s);
     }
     else if (oldState == ElementState::Pressed && newState == ElementState::Normal)
     {
@@ -251,7 +251,7 @@ void TransitionManager::AnimateStateTransition(UIElement* target, ElementState o
         s.to = 1.0f;
         s.duration = 0.15f;
         s.easing = Easing::EaseOut;
-        Animate(target, s);
+        (void)Animate(target, s);
     }
     else if (oldState == ElementState::Pressed && newState == ElementState::Hover)
     {
@@ -261,7 +261,7 @@ void TransitionManager::AnimateStateTransition(UIElement* target, ElementState o
         s.to = 1.05f;
         s.duration = 0.15f;
         s.easing = Easing::EaseOut;
-        Animate(target, s);
+        (void)Animate(target, s);
     }
 }
 

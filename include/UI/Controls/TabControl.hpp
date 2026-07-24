@@ -9,7 +9,7 @@ namespace DragonOS::UI {
 
 struct TabPage {
     std::wstring headerText;
-    std::unique_ptr<UIElement> content;
+    UIElement* content{nullptr};
 };
 
 class TabControl : public UIContainer {

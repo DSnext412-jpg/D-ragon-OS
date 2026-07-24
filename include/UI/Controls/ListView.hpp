@@ -21,6 +21,7 @@ public:
 
     void SetScrollOffset(float offset) noexcept;
     [[nodiscard]] float GetScrollOffset() const noexcept { return m_scrollOffset; }
+    void EnsureVisible() noexcept;
 
     D2D1_RECT_F MeasureOverride(const D2D1_RECT_F& available) noexcept override;
     void Render(UIRenderer& renderer) noexcept override;

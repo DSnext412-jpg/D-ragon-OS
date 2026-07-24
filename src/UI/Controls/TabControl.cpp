@@ -31,7 +31,7 @@ bool TabControl::RemovePage(int index) noexcept
         return false;
 
     if (m_tabs[index].content)
-        RemoveChild(m_tabs[index].content.get());
+        RemoveChild(m_tabs[index].content);
 
     m_tabs.erase(m_tabs.begin() + index);
     if (m_selectedIndex >= static_cast<int>(m_tabs.size()))

@@ -34,7 +34,7 @@ void SearchService::Shutdown() noexcept
     m_initialized = false;
 }
 
-void SearchService::Update(float deltaTime) noexcept
+void SearchService::Update(float /*deltaTime*/) noexcept
 {
     if (!m_initialized) { return; }
 

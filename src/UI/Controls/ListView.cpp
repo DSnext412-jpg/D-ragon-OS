@@ -40,6 +40,19 @@ std::wstring ListView::GetSelectedItem() const noexcept
     return {};
 }
 
+void ListView::EnsureVisible() noexcept
+{
+    if (m_selectedIndex < 0) return;
+    float itemTop = m_selectedIndex * ItemHeight;
+    float itemBottom = itemTop + ItemHeight;
+    float viewTop = m_scrollOffset;
+    float viewBottom = m_scrollOffset + GetHeight();
+    if (itemTop < viewTop)
+        SetScrollOffset(itemTop);
+    else if (itemBottom > viewBottom)
+        SetScrollOffset(itemBottom - GetHeight());
+}
+
 void ListView::SetScrollOffset(float offset) noexcept
 {
     float maxOffset = (std::max)(0.0f, static_cast<float>(m_items.size()) * ItemHeight - GetHeight());

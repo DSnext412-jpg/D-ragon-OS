@@ -78,7 +78,7 @@ void PasswordBox::Render(UIRenderer& renderer) noexcept
     }
     else if (!m_password.empty())
     {
-        std::wstring bulletStr(m_password.length(), L'\u25CF');
+        std::wstring bulletStr(m_password.length(), static_cast<wchar_t>(0x25CF));
         renderer.DrawText(bulletStr, contentRect, stateColors);
     }
 

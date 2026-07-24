@@ -202,12 +202,9 @@ bool ScrollViewer::OnEvent(const UIEvent& event) noexcept
                 event.y >= vBarRect.top && event.y <= vBarRect.bottom)
             {
                 float barLen = vBarRect.bottom - vBarRect.top;
-                float viewRatio = viewHeight / m_contentSize.height;
-                float thumbLen = (std::max)(barLen * viewRatio, MinScrollBarHeight);
                 float scrollRange = m_contentSize.height - viewHeight;
                 if (scrollRange > 0)
                 {
-                    float moveRange = barLen - thumbLen;
                     float clickRatio = (event.y - vBarRect.top) / barLen;
                     m_scrollY = clickRatio * scrollRange;
                     InvalidateVisual();
@@ -226,12 +223,9 @@ bool ScrollViewer::OnEvent(const UIEvent& event) noexcept
                 event.y >= hBarRect.top && event.y <= hBarRect.bottom)
             {
                 float barLen = hBarRect.right - hBarRect.left;
-                float viewRatio = viewWidth / m_contentSize.width;
-                float thumbLen = (std::max)(barLen * viewRatio, MinScrollBarHeight);
                 float scrollRange = m_contentSize.width - viewWidth;
                 if (scrollRange > 0)
                 {
-                    float moveRange = barLen - thumbLen;
                     float clickRatio = (event.x - hBarRect.left) / barLen;
                     m_scrollX = clickRatio * scrollRange;
                     InvalidateVisual();

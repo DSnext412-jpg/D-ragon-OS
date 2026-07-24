@@ -135,7 +135,7 @@ public:
         }
     }
 
-    void Update(float deltaTime) noexcept override
+    void Update(float /*deltaTime*/) noexcept override
     {
         m_frameCount++;
 

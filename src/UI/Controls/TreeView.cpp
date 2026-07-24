@@ -211,7 +211,7 @@ void TreeView::Render(UIRenderer& renderer) noexcept
                 bounds.left + indent + 20.0f, y + ItemHeight - 4.0f
             };
             const auto& arrowColors = style->ResolveState(ElementState::Normal);
-            renderer.DrawIcon(arrowRect, item->isExpanded ? L'\u25BC' : L'\u25B6', arrowColors, 10.0f);
+            renderer.DrawIcon(arrowRect, item->isExpanded ? static_cast<wchar_t>(0x25BC) : static_cast<wchar_t>(0x25B6), arrowColors, 10.0f);
         }
 
         float textIndent = hasChildren ? indent + 22.0f : indent + 6.0f;

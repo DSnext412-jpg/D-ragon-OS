@@ -19,7 +19,7 @@ void NotificationManager::Shutdown() noexcept
     m_initialized = false;
 }
 
-void NotificationManager::Update(float deltaTime) noexcept
+void NotificationManager::Update(float /*deltaTime*/) noexcept
 {
     if (!m_initialized) { return; }
 

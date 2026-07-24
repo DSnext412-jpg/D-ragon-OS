@@ -149,7 +149,7 @@ void ComboBox::Render(UIRenderer& renderer) noexcept
         bounds.right - paddingR,
         bounds.bottom - style->paddingBottom
     };
-    renderer.DrawIcon(arrowRect, L'\u25BC', stateColors, 10.0f);
+    renderer.DrawIcon(arrowRect, static_cast<wchar_t>(0x25BC), stateColors, 10.0f);
 
     if (GetState() == ElementState::Focused)
         renderer.DrawFocusIndicator(bounds);

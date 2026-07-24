@@ -20,7 +20,6 @@ Button* Toolbar::AddButton(std::wstring_view text, wchar_t icon, std::function<v
     auto* raw = btn.get();
 
     AddChild(std::move(btn));
-    m_needsRebuild = false;
 
     InvalidateLayout();
     return raw;

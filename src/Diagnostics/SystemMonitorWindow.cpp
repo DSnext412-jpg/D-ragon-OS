@@ -33,7 +33,7 @@ void SystemMonitorWindow::SetDependencies(
     m_pProcMgr = &procManager;
 }
 
-void SystemMonitorWindow::PushMetric(MetricType type, double value, std::wstring_view name) noexcept
+void SystemMonitorWindow::PushMetric(MetricType type, double value, std::wstring_view /*name*/) noexcept
 {
     switch (type)
     {

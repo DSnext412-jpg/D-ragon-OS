@@ -112,10 +112,10 @@ void ExplorerWindow::InitUIElements() noexcept
         {L"", 0x2191, ExplorerHitRegion::ToolbarUp},
         {L"", 0x21BB, ExplorerHitRegion::ToolbarRefresh},
         {L"", 0x2795, ExplorerHitRegion::ToolbarNewFolder},
-        {L"", 0x1F4CB, ExplorerHitRegion::ToolbarCopy},
-        {L"", 0x1F4CC, ExplorerHitRegion::ToolbarPaste},
+        {L"", 0x2702, ExplorerHitRegion::ToolbarCopy},
+        {L"", 0x2702, ExplorerHitRegion::ToolbarPaste},
         {L"", 0x2716, ExplorerHitRegion::ToolbarDelete},
-        {L"", 0x1F4D1, ExplorerHitRegion::ToolbarRename},
+        {L"", 0x270E, ExplorerHitRegion::ToolbarRename},
         {L"", 0x2699, ExplorerHitRegion::ToolbarProperties},
     };
 

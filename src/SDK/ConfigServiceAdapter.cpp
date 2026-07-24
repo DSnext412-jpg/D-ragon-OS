@@ -6,7 +6,7 @@
 
 namespace DragonOS::SDK {
 
-static std::wstring EscapeJson(const std::wstring& s)
+[[maybe_unused]] static std::wstring EscapeJson(const std::wstring& s)
 {
     std::wstring out;
     out.reserve(s.size() + 2);

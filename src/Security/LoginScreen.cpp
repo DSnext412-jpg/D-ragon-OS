@@ -235,7 +235,7 @@ void LoginScreen::RenderLoginBox(Graphics::Renderer& renderer) noexcept
     renderer.DrawRectangle(passFieldRect, Graphics::Color{ 0.4f, 0.4f, 0.5f, 1 }, 1.0f);
 
     std::wstring masked;
-    masked.append(m_password.size(), L'\u25CF');
+    masked.append(m_password.size(), static_cast<wchar_t>(0x25CF));
     renderer.DrawText(masked, D2D1::RectF(boxX + 24, boxY + 154, boxX + boxW - 24, boxY + 178), Graphics::Color{ 1, 1, 1, 1 });
 
     // Error message
@@ -280,7 +280,7 @@ void LoginScreen::RenderLockBox(Graphics::Renderer& renderer) noexcept
     renderer.DrawRectangle(passFieldRect, Graphics::Color{ 0.4f, 0.4f, 0.5f, 1 }, 1.0f);
 
     std::wstring masked;
-    masked.append(m_password.size(), L'\u25CF');
+    masked.append(m_password.size(), static_cast<wchar_t>(0x25CF));
     renderer.DrawText(masked, D2D1::RectF(boxX + 24, boxY + 107, boxX + boxW - 24, boxY + 131), Graphics::Color{ 1, 1, 1, 1 });
 
     if (m_error)

@@ -21,9 +21,10 @@ void InputManager::Update(float /*deltaTime*/) noexcept
     m_mouse.Update();
     m_mouseManager.Update();
     m_keyboard.Update();
+}
 
-    // The event queue has been available for reading during this Update
-    // call; now it is safe to clear for the next frame.
+void InputManager::EndFrame() noexcept
+{
     m_eventQueue.clear();
     m_charBuffer.clear();
 }

@@ -303,7 +303,7 @@ std::wstring FileSystemService::GetParentPath(const std::wstring& path) noexcept
     std::wstring normalized = NormalizePath(path);
     if (normalized.empty()) { return L""; }
 
-    // Handle root paths like C:\
+    // Handle root paths like C: (backslash follows, handled by IsRootPath)
     if (IsRootPath(normalized)) { return normalized; }
 
     // Remove trailing backslash if present

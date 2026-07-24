@@ -9,6 +9,7 @@ namespace DragonOS::UI {
 class RadioButtonGroup;
 
 class RadioButton : public UIElement {
+    friend class RadioButtonGroup;
 public:
     RadioButton() noexcept;
     explicit RadioButton(std::wstring_view text) noexcept;

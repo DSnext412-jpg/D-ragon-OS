@@ -79,7 +79,7 @@ void CheckBox::Render(UIRenderer& renderer) noexcept
             boxRect.right - 2.0f,
             boxRect.bottom - 2.0f
         };
-        renderer.DrawIcon(checkRect, L'\u2713', fillColors, BoxSize - 4.0f);
+        renderer.DrawIcon(checkRect, static_cast<wchar_t>(0x2713), fillColors, BoxSize - 4.0f);
     }
     else
     {

@@ -16,7 +16,7 @@ void FocusManager::SetFocusedElement(UIElement* element) noexcept
         UIEvent lost{};
         lost.type   = UIEventType::FocusLost;
         lost.target = m_focused;
-        m_focused->OnEvent(lost);
+        (void)m_focused->OnEvent(lost);
     }
 
     m_focused = element;
@@ -26,7 +26,7 @@ void FocusManager::SetFocusedElement(UIElement* element) noexcept
         UIEvent gained{};
         gained.type   = UIEventType::FocusGained;
         gained.target = m_focused;
-        m_focused->OnEvent(gained);
+        (void)m_focused->OnEvent(gained);
     }
 }
 

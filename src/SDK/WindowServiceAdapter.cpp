@@ -32,8 +32,6 @@ dragonos::sdk::IWindow* WindowServiceAdapter::Create(
         params.width,
         params.height);
 
-    auto* rawPtr = internalWnd.get();
-
     auto* added = m_windowManager.AddWindow(std::move(internalWnd));
     if (!added) { return nullptr; }
 

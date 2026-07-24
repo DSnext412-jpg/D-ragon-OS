@@ -69,6 +69,9 @@ public:
      */
     void Update(float deltaTime) noexcept override;
 
+    /// @brief  Clear per-frame buffers (call after all systems have consumed events).
+    void EndFrame() noexcept;
+
     /// @brief  No-op — input does not render.
     void Render(Engine::EngineContext& /*ctx*/) noexcept override {}
 

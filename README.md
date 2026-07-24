@@ -722,16 +722,6 @@ Before building **D'Ragon OS**, ensure your development environment meets the fo
 
 ---
 
-# 📥 Clone Repository
-
-```bash
-git clone https://github.com/DSnext412-jpg/D-ragon-OS.git
-
-cd D-ragon-OS
-```
-
----
-
 # ⚙ Build
 
 Generate build files

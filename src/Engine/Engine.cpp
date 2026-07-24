@@ -41,6 +41,7 @@
 #include <Events/EventBus.hpp>
 #include <Security/SecuritySystem.hpp>
 #include <Diagnostics/DevToolsManager.hpp>
+#include <DragonUI/DragonUISystem.hpp>
 
 #include <SDK/NotificationServiceAdapter.hpp>
 #include <SDK/ConfigServiceAdapter.hpp>
@@ -769,6 +770,9 @@ bool Engine::Initialize(
     securitySys->SetThemeManager(*themeMgr);
     securitySys->SetInputManager(*inputMgr);
     securitySys->SetMouseManager(inputMgr->GetMouseManager());
+
+    // ── Register DragonUI System (reusable UI framework demo) ────────────
+    m_pSystemManager->Register<DragonOS::DragonUI::DragonUISystem>();
 
     // ── Initialise all systems ───────────────────────────────────────────
     m_pSystemManager->InitializeAll(*m_pContext);

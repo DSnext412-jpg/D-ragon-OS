@@ -35,6 +35,7 @@ public:
     void CloseSettings(uint64_t windowId) noexcept;
     [[nodiscard]] size_t GetWindowCount() const noexcept { return m_instances.size(); }
     void SetMouseManager(Input::MouseManager& mouseMgr) noexcept { m_pMouse = &mouseMgr; }
+    void SetInputManager(Input::InputManager& inputMgr) noexcept { m_pInput = &inputMgr; }
 
 private:
     struct SettingsInstance {
@@ -48,6 +49,7 @@ private:
     WindowManager::WindowManager& m_windowManager;
     Theme::ThemeManager&          m_themeManager;
     Input::MouseManager*          m_pMouse{nullptr};
+    Input::InputManager*          m_pInput{nullptr};
     float m_viewportWidth{0}, m_viewportHeight{0};
     bool  m_initialized{false};
 };

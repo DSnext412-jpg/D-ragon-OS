@@ -669,6 +669,7 @@ bool Engine::Initialize(
     auto* settingsSys = m_pSystemManager->Register<Settings::SettingsSystem>(
         windowManager, *themeMgr);
     settingsSys->SetMouseManager(inputMgr->GetMouseManager());
+    settingsSys->SetInputManager(*inputMgr);
 
     // ── Register StartMenuSystem (renders above taskbar, below debug) ────
     auto* startMenuSys = m_pSystemManager->Register<StartMenuSystem>(

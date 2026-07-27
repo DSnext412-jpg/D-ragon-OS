@@ -1,6 +1,7 @@
 #pragma once
 #include <Settings/SettingsTypes.hpp>
 #include <UI/UI.hpp>
+#include <DragonUI/Demo/SettingsMigration.hpp>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -8,7 +9,7 @@
 
 namespace DragonOS::Graphics { class Renderer; }
 namespace DragonOS::Theme { class ThemeManager; }
-namespace DragonOS::Input { class MouseManager; }
+namespace DragonOS::Input { class MouseManager; class InputManager; }
 namespace DragonOS::WindowManager { class DragonWindow; }
 
 namespace DragonOS::Settings {
@@ -26,13 +27,15 @@ public:
     void SetDependencies(
         WindowManager::DragonWindow& window,
         Theme::ThemeManager& themeManager,
-        Input::MouseManager& mouseManager) noexcept;
+        Input::MouseManager& mouseManager,
+        Input::InputManager& inputManager) noexcept;
 
     void SetWindow(WindowManager::DragonWindow& window) noexcept { m_pWindow = &window; }
 
     void Update() noexcept;
     void Render(Graphics::Renderer& renderer) noexcept;
     void ProcessInput() noexcept;
+    void SetRenderer(Graphics::Renderer* renderer) noexcept { m_pRenderer = renderer; }
 
     [[nodiscard]] uint64_t GetWindowId() const noexcept;
     [[nodiscard]] static const std::wstring& GetAppName() noexcept
@@ -50,9 +53,14 @@ private:
     std::vector<std::unique_ptr<UI::StackPanel>> m_categoryPages;
     std::unique_ptr<UI::StatusBar> m_statusBar;
 
+    // DragonUI migration section for Network tab
+    std::unique_ptr<DragonUI::Demo::SettingsMigrationSection> m_dragonUISection;
+
     WindowManager::DragonWindow* m_pWindow{nullptr};
     Theme::ThemeManager*         m_pTheme{nullptr};
     Input::MouseManager*         m_pMouse{nullptr};
+    Input::InputManager*         m_pInput{nullptr};
+    Graphics::Renderer*          m_pRenderer{nullptr};
 
     int     m_selectedCategory{0};
     float   m_viewportWidth{0}, m_viewportHeight{0};

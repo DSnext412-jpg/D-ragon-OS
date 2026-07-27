@@ -4,6 +4,8 @@
 #include <Theme/ThemeMetrics.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Input/MouseManager.hpp>
+#include <Input/InputManager.hpp>
+#include <Input/InputEvent.hpp>
 #include <WindowManager/DragonWindow.hpp>
 #include <UI/Core/UIRenderer.hpp>
 #include <d2d1.h>
@@ -16,11 +18,13 @@ SettingsWindow::SettingsWindow() noexcept = default;
 void SettingsWindow::SetDependencies(
     WindowManager::DragonWindow& window,
     Theme::ThemeManager& themeManager,
-    Input::MouseManager& mouseManager) noexcept
+    Input::MouseManager& mouseManager,
+    Input::InputManager& inputManager) noexcept
 {
     m_pWindow = &window;
     m_pTheme  = &themeManager;
     m_pMouse  = &mouseManager;
+    m_pInput  = &inputManager;
 
     BuildUI();
 
@@ -147,26 +151,16 @@ void SettingsWindow::BuildUI() noexcept
         return panel;
     };
 
+    // Network page replaced by DragonUI section (rendered separately)
     auto buildNetworkPage = [this]() -> std::unique_ptr<UI::StackPanel> {
         auto panel = std::make_unique<UI::StackPanel>(UI::Orientation::Vertical);
         panel->SetSpacing(12.0f);
         panel->SetPadding(12.0f, 8.0f, 12.0f, 8.0f);
 
-        auto wifiToggle = std::make_unique<UI::ToggleSwitch>(L"Wi-Fi");
-        wifiToggle->SetStyle(UI::UIStyle::DefaultToggleSwitch());
-        wifiToggle->SetToggled(true);
-
-        auto btToggle = std::make_unique<UI::ToggleSwitch>(L"Bluetooth");
-        btToggle->SetStyle(UI::UIStyle::DefaultToggleSwitch());
-        btToggle->SetToggled(true);
-
-        auto airplaneToggle = std::make_unique<UI::ToggleSwitch>(L"Airplane mode");
-        airplaneToggle->SetStyle(UI::UIStyle::DefaultToggleSwitch());
-        airplaneToggle->SetToggled(false);
-
-        panel->AddChild(std::move(wifiToggle));
-        panel->AddChild(std::move(btToggle));
-        panel->AddChild(std::move(airplaneToggle));
+        // This page is rendered by DragonUI framework instead
+        auto label = std::make_unique<UI::Label>(L"(DragonUI controls below)");
+        label->SetStyle(UI::UIStyle::DefaultLabel());
+        panel->AddChild(std::move(label));
 
         return panel;
     };
@@ -207,7 +201,7 @@ void SettingsWindow::BuildUI() noexcept
 
     m_statusBar = std::make_unique<UI::StatusBar>();
     m_statusBar->SetStyle(UI::UIStyle::DefaultStatusBar());
-    m_statusBar->SetText(L"Settings");
+    m_statusBar->SetText(L"Settings — Network section uses DragonUI");
 }
 
 void SettingsWindow::OnCategoryChanged(int index) noexcept
@@ -221,6 +215,11 @@ void SettingsWindow::Update() noexcept
     if (!m_pWindow->IsVisible()) { return; }
 
     ProcessInput();
+
+    if (m_dragonUISection && m_selectedCategory == 3)
+    {
+        m_dragonUISection->Update(0.016f);
+    }
 }
 
 void SettingsWindow::ProcessInput() noexcept
@@ -245,12 +244,23 @@ void SettingsWindow::ProcessInput() noexcept
             m_tabControl->OnEvent(ev);
         }
     }
+
+    // DragonUI input is handled via InputManager events in Update
 }
 
 void SettingsWindow::Render(Graphics::Renderer& renderer) noexcept
 {
     if (!m_initialized || !m_pWindow || !m_pWindow->IsVisible()) return;
     if (!m_pTheme) return;
+
+    m_pRenderer = &renderer;
+
+    // Create DragonUI section lazily on first render (needs renderer)
+    if (!m_dragonUISection && m_pInput)
+    {
+        m_dragonUISection = std::make_unique<DragonUI::Demo::SettingsMigrationSection>(
+            renderer, *m_pTheme, *m_pInput);
+    }
 
     const float w = m_pWindow->GetWidth();
     const float h = m_pWindow->GetHeight();
@@ -269,6 +279,16 @@ void SettingsWindow::Render(Graphics::Renderer& renderer) noexcept
         m_tabControl->Measure(D2D1::RectF(0, 0, w - 16, h - 44));
         m_tabControl->Arrange(tcBounds);
         m_tabControl->Render(uiRenderer);
+    }
+
+    // Network tab (index 3) — render DragonUI section on top
+    if (m_dragonUISection && m_selectedCategory == 3)
+    {
+        D2D1_RECT_F sectionBounds = { 8, 8, w - 8, h - 36 };
+        m_dragonUISection->Resize(
+            sectionBounds.right - sectionBounds.left,
+            sectionBounds.bottom - sectionBounds.top);
+        m_dragonUISection->Render();
     }
 
     if (m_statusBar)

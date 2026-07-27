@@ -17,3 +17,4 @@
 
 // DragonOS UI Framework - available to SDK consumers
 #include <UI/UI.hpp>
+#include <DragonOS/DragonUI.hpp>

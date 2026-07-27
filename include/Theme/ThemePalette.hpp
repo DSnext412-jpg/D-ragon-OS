@@ -81,10 +81,19 @@ enum class SemanticColor {
 
     // ── Services ───────────────────────────────────────────────────────
     ServiceIndicator,         ///< Background service activity indicator.
+
+    // ── Input Controls (DragonUI) ────────────────────────────────────
+    ControlFill,              ///< Background fill for input controls.
+    ControlBorder,            ///< Border for input controls.
+    ControlText,              ///< Text inside input controls.
+    PlaceholderText,          ///< Placeholder / watermark text.
+    CaretColor,               ///< Text cursor colour.
+    ControlAccentFill,        ///< Active fill (toggle on, checkbox).
+    ControlAccentBorder,      ///< Active / focused border.
 };
 
 /// @brief  Number of semantic colour tokens.
-inline constexpr std::size_t SemanticColorCount = 44;
+inline constexpr std::size_t SemanticColorCount = 51;
 
 /**
  * @brief  Owns every ThemeColor that a theme defines.
@@ -151,6 +160,14 @@ public:
     [[nodiscard]] const ThemeColor& GetSearchBackground()         const noexcept { return m_colors[41]; }
     [[nodiscard]] const ThemeColor& GetSearchHighlight()          const noexcept { return m_colors[42]; }
     [[nodiscard]] const ThemeColor& GetServiceIndicator()         const noexcept { return m_colors[43]; }
+
+    [[nodiscard]] const ThemeColor& GetControlFill()             const noexcept { return m_colors[44]; }
+    [[nodiscard]] const ThemeColor& GetControlBorder()           const noexcept { return m_colors[45]; }
+    [[nodiscard]] const ThemeColor& GetControlText()             const noexcept { return m_colors[46]; }
+    [[nodiscard]] const ThemeColor& GetPlaceholderText()         const noexcept { return m_colors[47]; }
+    [[nodiscard]] const ThemeColor& GetCaretColor()              const noexcept { return m_colors[48]; }
+    [[nodiscard]] const ThemeColor& GetControlAccentFill()       const noexcept { return m_colors[49]; }
+    [[nodiscard]] const ThemeColor& GetControlAccentBorder()     const noexcept { return m_colors[50]; }
 
 private:
     std::array<ThemeColor, SemanticColorCount> m_colors{};

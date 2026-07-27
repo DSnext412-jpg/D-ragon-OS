@@ -92,6 +92,15 @@ static ThemePalette CreateDarkPalette() noexcept
     // ── Services ────────────────────────────────────────────────────────────
     p[SemanticColor::ServiceIndicator]         = ThemeColor::FromRGB(58, 134, 255);   // Blue indicator
 
+    // ── Input Controls (DragonUI) ────────────────────────────────────────────
+    p[SemanticColor::ControlFill]              = ThemeColor::FromRGB(42, 46, 56);     // Slightly lighter than window bg
+    p[SemanticColor::ControlBorder]            = ThemeColor::FromRGB(80, 90, 110);    // Subtle border
+    p[SemanticColor::ControlText]              = ThemeColor::FromRGB(240, 240, 240);  // Off-white (matches TextPrimary)
+    p[SemanticColor::PlaceholderText]          = ThemeColor::FromRGB(140, 140, 140);  // Dim grey
+    p[SemanticColor::CaretColor]               = ThemeColor::FromRGB(240, 240, 240);  // White cursor
+    p[SemanticColor::ControlAccentFill]        = ThemeColor::FromRGB(58, 134, 255);   // Vivid blue (matches accent)
+    p[SemanticColor::ControlAccentBorder]      = ThemeColor::FromRGB(58, 134, 255);   // Vivid blue
+
     return p;
 }
 

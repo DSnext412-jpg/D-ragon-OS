@@ -28,89 +28,12 @@ bool DragonUISystem::Initialize(Engine::EngineContext& ctx) noexcept
 
     m_host = std::make_unique<WindowHost>(*renderer, *theme, *input);
 
-    // ── Demo scene ──────────────────────────────────────────────────
-    auto panel = std::make_unique<Demo::DemoPanel>(Thickness(60, 80, 60, 60));
-    panel->SetPadding(Thickness(20));
-
-    // Title
-    auto title = std::make_unique<UILabel>(L"DragonUI Controls Demo");
-    title->SetTextAlignment(Alignment::Center);
-    title->SetMinSize(0, 30);
-
-    panel->AddChild(std::move(title));
-
-    // Separator
-    auto sep1 = std::make_unique<UISeparator>();
-    sep1->SetThickness(1.0f);
-    sep1->SetMargin(Thickness(0, 4, 0, 4));
-    panel->AddChild(std::move(sep1));
-
-    // Description
-    auto desc = std::make_unique<UILabel>(
-        L"This window validates all basic DragonUI controls: labels, "
-        L"buttons, images, panels, progress bars, and separators. "
-        L"All controls respond to hover and focus.");
-    desc->SetWordWrap(true);
-    desc->SetMinSize(0, 36);
-    panel->AddChild(std::move(desc));
-
-    // Buttons row: three buttons side by side
-    auto btn1 = std::make_unique<UIButton>(L"Click Me");
-    btn1->SetMargin(Thickness(0, 12, 0, 0));
-    btn1->SetOnClick([](UIButton& b) {
-        b.SetText(L"Clicked!");
-    });
-
-    auto btn2 = std::make_unique<UIButton>(L"Disabled");
-    btn2->SetMargin(Thickness(8, 12, 0, 0));
-    btn2->SetEnabled(false);
-
-    auto btn3 = std::make_unique<UIButton>(L"Tab Target");
-    btn3->SetMargin(Thickness(8, 12, 0, 0));
-    btn3->SetFocusable(true);
-
-    panel->AddChild(std::move(btn1));
-    panel->AddChild(std::move(btn2));
-    panel->AddChild(std::move(btn3));
-
-    // Icon row
-    auto iconLabel = std::make_unique<UILabel>(L"Icon preview:");
-    iconLabel->SetMinSize(0, 20);
-    iconLabel->SetMargin(Thickness(0, 12, 0, 0));
-    panel->AddChild(std::move(iconLabel));
-
-    auto icon = std::make_unique<UIImage>();
-    icon->SetGlyph(0xE768, 48.0f); // Settings gear icon
-    icon->SetColor(Theme::SemanticColor::Accent);
-    icon->SetMinSize(48, 48);
-    panel->AddChild(std::move(icon));
-
-    // Progress bar
-    auto progLabel = std::make_unique<UILabel>(L"Progress:");
-    progLabel->SetMinSize(0, 20);
-    progLabel->SetMargin(Thickness(0, 8, 0, 0));
-    panel->AddChild(std::move(progLabel));
-
-    auto progress = std::make_unique<UIProgressBar>();
-    progress->SetRange(0, 100);
-    progress->SetValue(65);
-    progress->SetMargin(Thickness(0, 4, 0, 0));
-    m_progressBar = progress.get();
-    panel->AddChild(std::move(progress));
-
-    // Bottom separator
-    auto sep2 = std::make_unique<UISeparator>();
-    sep2->SetMargin(Thickness(0, 8, 0, 4));
-    panel->AddChild(std::move(sep2));
-
-    // Status text
-    auto status = std::make_unique<UILabel>(L"Status: All systems nominal");
-    status->SetTextAlignment(Alignment::End);
-    status->SetTextColor(Theme::SemanticColor::TextSecondary);
-    status->SetMinSize(0, 18);
-    panel->AddChild(std::move(status));
-
-    m_host->SetRoot(std::move(panel));
+    // ── Input Controls Demo ─────────────────────────────────────────
+    // This demo validates all DragonUI input controls: TextBox,
+    // PasswordBox, CheckBox, RadioButton, ToggleSwitch, and the
+    // Validation framework. All controls respond to hover, focus,
+    // keyboard navigation, and theme colours.
+    m_host->SetRoot(Demo::InputControlsDemo::Create());
     m_host->Resize(ctx.GetViewportWidth(), ctx.GetViewportHeight());
 
     return true;
@@ -118,7 +41,6 @@ bool DragonUISystem::Initialize(Engine::EngineContext& ctx) noexcept
 
 void DragonUISystem::Shutdown() noexcept
 {
-    m_progressBar = nullptr;
     m_host.reset();
     m_input = nullptr;
 }
@@ -159,15 +81,6 @@ void DragonUISystem::Update(float deltaTime) noexcept
         default:
             break;
         }
-    }
-
-    // Animate progress bar
-    if (m_progressBar)
-    {
-        static float t = 0;
-        t += deltaTime * 20.0f;
-        float v = std::fmod(t, 200.0f);
-        m_progressBar->SetValue(v > 100.0f ? 200.0f - v : v);
     }
 
     m_host->Update(deltaTime);

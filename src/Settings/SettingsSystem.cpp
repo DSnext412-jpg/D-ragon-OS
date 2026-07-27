@@ -102,9 +102,9 @@ void SettingsSystem::OpenSettings() noexcept
 
     if (!pWindow || !pContent) { return; }
 
-    if (m_pMouse)
+    if (m_pInput && m_pMouse)
     {
-        pContent->SetDependencies(*pWindow, m_themeManager, *m_pMouse);
+        pContent->SetDependencies(*pWindow, m_themeManager, *m_pMouse, *m_pInput);
     }
 
     SettingsInstance inst;

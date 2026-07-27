@@ -51,4 +51,10 @@ struct InputControlsDemo {
     static std::unique_ptr<Element> Create() noexcept;
 };
 
+// ── Layout Containers Demo ─────────────────────────────────────────
+
+struct LayoutDemo {
+    static std::unique_ptr<Element> Create() noexcept;
+};
+
 } // namespace

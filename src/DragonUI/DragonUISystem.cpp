@@ -28,12 +28,10 @@ bool DragonUISystem::Initialize(Engine::EngineContext& ctx) noexcept
 
     m_host = std::make_unique<WindowHost>(*renderer, *theme, *input);
 
-    // ── Input Controls Demo ─────────────────────────────────────────
-    // This demo validates all DragonUI input controls: TextBox,
-    // PasswordBox, CheckBox, RadioButton, ToggleSwitch, and the
-    // Validation framework. All controls respond to hover, focus,
-    // keyboard navigation, and theme colours.
-    m_host->SetRoot(Demo::InputControlsDemo::Create());
+    // ── Layout Containers Demo ──────────────────────────────────────
+    // Demonstrates StackPanel, Grid, DockPanel, WrapPanel, Canvas,
+    // and ScrollViewer layout containers.
+    m_host->SetRoot(Demo::LayoutDemo::Create());
     m_host->Resize(ctx.GetViewportWidth(), ctx.GetViewportHeight());
 
     return true;

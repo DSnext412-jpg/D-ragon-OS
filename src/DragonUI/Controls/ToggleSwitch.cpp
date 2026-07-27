@@ -23,11 +23,6 @@ static float GetFrameTime() noexcept
     return dt;
 }
 
-static float Lerp(float a, float b, float t) noexcept
-{
-    return a + (b - a) * t;
-}
-
 namespace DragonOS::DragonUI {
 
 UIToggleSwitch::UIToggleSwitch(std::wstring_view text) noexcept
@@ -170,7 +165,7 @@ void UIToggleSwitch::Render(RenderContext& ctx) noexcept
 
 // ── Events ────────────────────────────────────────────────────────────
 
-bool UIToggleSwitch::OnMouseEvent(EventType type, const MouseEventArgs& args) noexcept
+bool UIToggleSwitch::OnMouseEvent(EventType type, const MouseEventArgs&) noexcept
 {
     if (type == EventType::Click)
     {

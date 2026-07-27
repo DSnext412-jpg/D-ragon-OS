@@ -182,7 +182,7 @@ void UIRadioButton::Render(RenderContext& ctx) noexcept
 
 // ── Events ────────────────────────────────────────────────────────────
 
-bool UIRadioButton::OnMouseEvent(EventType type, const MouseEventArgs& args) noexcept
+bool UIRadioButton::OnMouseEvent(EventType type, const MouseEventArgs&) noexcept
 {
     if (type == EventType::Click)
     {

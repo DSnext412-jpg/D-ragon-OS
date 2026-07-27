@@ -1,5 +1,6 @@
 #include <Explorer/ExplorerWindow.hpp>
 
+#include <DragonUI/Core/RenderContext.hpp>
 #include <FileSystem/FileSystemService.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Input/MouseManager.hpp>
@@ -128,8 +129,15 @@ void ExplorerWindow::InitUIElements() noexcept
         m_uiToolbarButtons.push_back(btn);
     }
 
-    // ── Status bar ────────────────────────────────────────────────────
-    m_uiStatusBar = std::make_unique<UI::StatusBar>();
+    // ── Status bar (DragonUI) ─────────────────────────────────────────
+    m_dragonStatusBar = std::make_unique<DragonUI::UIPanel>();
+    m_dragonStatusBar->SetBackground(Theme::SemanticColor::WindowTitleBar);
+    m_dragonStatusBar->SetPadding(DragonUI::Thickness(8, 2, 8, 2));
+
+    m_dragonStatusLabel = std::make_unique<DragonUI::UILabel>(L"");
+    m_dragonStatusLabel->SetTextColor(Theme::SemanticColor::TextSecondary);
+    m_dragonStatusLabel->SetMinSize(0, 20);
+    m_dragonStatusBar->AddChild(std::move(m_dragonStatusLabel));
 
     // ── Context menu ──────────────────────────────────────────────────
     m_uiContextMenu = std::make_unique<UI::ContextMenu>();
@@ -416,14 +424,14 @@ void ExplorerWindow::RecalculateLayout() noexcept
         m_uiToolbar->Arrange(tbBounds);
     }
 
-    if (m_uiStatusBar)
+    if (m_dragonStatusBar)
     {
-        D2D1_RECT_F sbBounds = {
+        DragonUI::LayoutSlot sbSlot{
             m_layout.statusBarArea.x, m_layout.statusBarArea.y,
-            m_layout.statusBarArea.Right(), m_layout.statusBarArea.Bottom()
+            m_layout.statusBarArea.width, m_layout.statusBarArea.height
         };
-        m_uiStatusBar->Measure(D2D1::RectF(0, 0, cw - 8.0f, statusH));
-        m_uiStatusBar->Arrange(sbBounds);
+        m_dragonStatusBar->Measure({0, 0, sbSlot.width, sbSlot.height});
+        m_dragonStatusBar->Arrange(sbSlot);
     }
 
     m_layout.scrollOffset = m_scrollOffset;
@@ -938,7 +946,7 @@ void ExplorerWindow::RenderFileEntryDetails(Graphics::Renderer& renderer, size_t
 
 void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
 {
-    if (!m_uiStatusBar || !m_pTheme) return;
+    if (!m_dragonStatusBar || !m_dragonStatusLabel || !m_pTheme) return;
 
     // Build status text
     std::wstring statusText;
@@ -957,10 +965,10 @@ void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
             statusText += L" (" + std::to_wstring(deniedCount) + L" inaccessible)";
     }
 
-    m_uiStatusBar->SetText(statusText);
+    m_dragonStatusLabel->SetText(statusText);
 
-    auto uiRenderer = MakeUIRenderer(renderer);
-    m_uiStatusBar->Render(uiRenderer);
+    DragonUI::RenderContext ctx(renderer, *m_pTheme);
+    m_dragonStatusBar->Render(ctx);
 }
 
 // ============================================================================

@@ -26,5 +26,13 @@
 #include <DragonUI/Controls/RadioButton.hpp>
 #include <DragonUI/Controls/ToggleSwitch.hpp>
 
+// Layout Containers
+#include <DragonUI/Controls/StackPanel.hpp>
+#include <DragonUI/Controls/Grid.hpp>
+#include <DragonUI/Controls/DockPanel.hpp>
+#include <DragonUI/Controls/WrapPanel.hpp>
+#include <DragonUI/Controls/Canvas.hpp>
+#include <DragonUI/Controls/ScrollViewer.hpp>
+
 // Validation
 #include <DragonUI/Validation/Validation.hpp>

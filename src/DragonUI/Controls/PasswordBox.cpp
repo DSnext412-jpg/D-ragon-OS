@@ -305,7 +305,7 @@ bool UIPasswordBox::OnKeyEvent(EventType type, const KeyEventArgs& args) noexcep
     }
 }
 
-bool UIPasswordBox::OnFocusEvent(const FocusEventArgs& args) noexcept
+bool UIPasswordBox::OnFocusEvent(const FocusEventArgs&) noexcept
 {
     m_caretVisible = true;
     m_blinkTimer = 0;

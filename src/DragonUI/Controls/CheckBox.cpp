@@ -143,7 +143,7 @@ void UICheckBox::Render(RenderContext& ctx) noexcept
 
 // ── Events ────────────────────────────────────────────────────────────
 
-bool UICheckBox::OnMouseEvent(EventType type, const MouseEventArgs& args) noexcept
+bool UICheckBox::OnMouseEvent(EventType type, const MouseEventArgs&) noexcept
 {
     if (type == EventType::Click)
     {

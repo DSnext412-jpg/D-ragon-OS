@@ -628,7 +628,7 @@ bool UITextBox::OnKeyEvent(EventType type, const KeyEventArgs& args) noexcept
     }
 }
 
-bool UITextBox::OnFocusEvent(const FocusEventArgs& args) noexcept
+bool UITextBox::OnFocusEvent(const FocusEventArgs&) noexcept
 {
     m_caretVisible = true;
     m_blinkTimer = 0;

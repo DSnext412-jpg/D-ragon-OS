@@ -101,6 +101,24 @@ static ThemePalette CreateDarkPalette() noexcept
     p[SemanticColor::ControlAccentFill]        = ThemeColor::FromRGB(58, 134, 255);   // Vivid blue (matches accent)
     p[SemanticColor::ControlAccentBorder]      = ThemeColor::FromRGB(58, 134, 255);   // Vivid blue
 
+    // ── Menu / Toolbar / StatusBar (DragonUI) ───────────────────────────────
+    p[SemanticColor::MenuBarBackground]        = ThemeColor::FromRGB(24, 28, 38);     // Dark slate (matches title bar)
+    p[SemanticColor::MenuBackground]           = ThemeColor::FromRGB(36, 40, 52);     // Slightly lighter slate
+    p[SemanticColor::MenuItemHover]            = ThemeColor::FromRGB(58, 134, 255, 40); // Blue hover tint
+    p[SemanticColor::MenuItemSelected]         = ThemeColor::FromRGB(58, 134, 255, 60); // Blue selection tint
+    p[SemanticColor::MenuSeparator]            = ThemeColor::FromRGB(70, 80, 100);    // Lighter slate (matches border)
+    p[SemanticColor::MenuBarText]              = ThemeColor::FromRGB(240, 240, 240);  // Off-white
+    p[SemanticColor::MenuItemText]             = ThemeColor::FromRGB(240, 240, 240);  // Off-white
+    p[SemanticColor::MenuItemTextDisabled]     = ThemeColor::FromRGB(130, 130, 130);  // Dim grey
+    p[SemanticColor::MenuIconGray]             = ThemeColor::FromRGB(160, 160, 160);  // Grey tint for icons
+    p[SemanticColor::ToolbarBackground]        = ThemeColor::FromRGB(36, 40, 50);     // Slightly lighter slate
+    p[SemanticColor::ToolbarButtonHover]       = ThemeColor::FromRGB(255, 255, 255, 20); // Subtle white
+    p[SemanticColor::ToolbarButtonPressed]     = ThemeColor::FromRGB(58, 134, 255, 60); // Blue pressed tint
+    p[SemanticColor::StatusBarBackground]      = ThemeColor::FromRGB(24, 28, 38);     // Dark slate (matches title bar)
+    p[SemanticColor::StatusBarText]            = ThemeColor::FromRGB(180, 180, 180);  // Grey (matches TextSecondary)
+    p[SemanticColor::StatusBarProgress]        = ThemeColor::FromRGB(58, 134, 255);   // Vivid blue
+    p[SemanticColor::StatusBarProgressTrack]   = ThemeColor::FromRGB(50, 54, 64);     // Darker track
+
     return p;
 }
 

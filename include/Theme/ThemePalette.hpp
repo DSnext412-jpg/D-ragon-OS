@@ -90,10 +90,28 @@ enum class SemanticColor {
     CaretColor,               ///< Text cursor colour.
     ControlAccentFill,        ///< Active fill (toggle on, checkbox).
     ControlAccentBorder,      ///< Active / focused border.
+
+    // ── Menu / Toolbar / StatusBar (DragonUI) ───────────────────────
+    MenuBarBackground,        ///< Menu bar background (top-level).
+    MenuBackground,           ///< Dropdown / context menu background.
+    MenuItemHover,            ///< Menu item hover highlight.
+    MenuItemSelected,         ///< Menu item selected / checked indicator.
+    MenuSeparator,            ///< Menu separator line colour.
+    MenuBarText,              ///< Menu bar item text colour.
+    MenuItemText,             ///< Menu item text colour.
+    MenuItemTextDisabled,     ///< Disabled menu item text colour.
+    MenuIconGray,             ///< Menu item icon tint when not accented.
+    ToolbarBackground,        ///< Toolbar background fill.
+    ToolbarButtonHover,       ///< Toolbar button hover overlay.
+    ToolbarButtonPressed,     ///< Toolbar button pressed overlay.
+    StatusBarBackground,      ///< Status bar background.
+    StatusBarText,            ///< Status bar text colour.
+    StatusBarProgress,        ///< Status bar progress bar fill.
+    StatusBarProgressTrack,   ///< Status bar progress bar track.
 };
 
 /// @brief  Number of semantic colour tokens.
-inline constexpr std::size_t SemanticColorCount = 51;
+inline constexpr std::size_t SemanticColorCount = 67;
 
 /**
  * @brief  Owns every ThemeColor that a theme defines.
@@ -168,6 +186,23 @@ public:
     [[nodiscard]] const ThemeColor& GetCaretColor()              const noexcept { return m_colors[48]; }
     [[nodiscard]] const ThemeColor& GetControlAccentFill()       const noexcept { return m_colors[49]; }
     [[nodiscard]] const ThemeColor& GetControlAccentBorder()     const noexcept { return m_colors[50]; }
+
+    [[nodiscard]] const ThemeColor& GetMenuBarBackground()       const noexcept { return m_colors[51]; }
+    [[nodiscard]] const ThemeColor& GetMenuBackground()          const noexcept { return m_colors[52]; }
+    [[nodiscard]] const ThemeColor& GetMenuItemHover()           const noexcept { return m_colors[53]; }
+    [[nodiscard]] const ThemeColor& GetMenuItemSelected()        const noexcept { return m_colors[54]; }
+    [[nodiscard]] const ThemeColor& GetMenuSeparator()           const noexcept { return m_colors[55]; }
+    [[nodiscard]] const ThemeColor& GetMenuBarText()             const noexcept { return m_colors[56]; }
+    [[nodiscard]] const ThemeColor& GetMenuItemText()            const noexcept { return m_colors[57]; }
+    [[nodiscard]] const ThemeColor& GetMenuItemTextDisabled()    const noexcept { return m_colors[58]; }
+    [[nodiscard]] const ThemeColor& GetMenuIconGray()            const noexcept { return m_colors[59]; }
+    [[nodiscard]] const ThemeColor& GetToolbarBackground()       const noexcept { return m_colors[60]; }
+    [[nodiscard]] const ThemeColor& GetToolbarButtonHover()      const noexcept { return m_colors[61]; }
+    [[nodiscard]] const ThemeColor& GetToolbarButtonPressed()    const noexcept { return m_colors[62]; }
+    [[nodiscard]] const ThemeColor& GetStatusBarBackground()     const noexcept { return m_colors[63]; }
+    [[nodiscard]] const ThemeColor& GetStatusBarText()           const noexcept { return m_colors[64]; }
+    [[nodiscard]] const ThemeColor& GetStatusBarProgress()       const noexcept { return m_colors[65]; }
+    [[nodiscard]] const ThemeColor& GetStatusBarProgressTrack()  const noexcept { return m_colors[66]; }
 
 private:
     std::array<ThemeColor, SemanticColorCount> m_colors{};

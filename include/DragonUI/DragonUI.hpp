@@ -36,3 +36,11 @@
 
 // Validation
 #include <DragonUI/Validation/Validation.hpp>
+
+// Menus & Toolbars
+#include <DragonUI/Controls/MenuItem.hpp>
+#include <DragonUI/Controls/Menu.hpp>
+#include <DragonUI/Controls/MenuBar.hpp>
+#include <DragonUI/Controls/ContextMenu.hpp>
+#include <DragonUI/Controls/ToolBar.hpp>
+#include <DragonUI/Controls/StatusBar.hpp>

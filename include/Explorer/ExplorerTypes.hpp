@@ -62,6 +62,9 @@ struct FileViewItem final {
 struct ExplorerLayout final {
     Input::Bounds clientArea{};
 
+    // Menu bar (File, Edit, View, Help)
+    Input::Bounds menuBarArea{};
+
     // Toolbar (button strip at top)
     Input::Bounds toolbarArea{};
     Input::Bounds btnBack{};

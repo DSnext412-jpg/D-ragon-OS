@@ -97,7 +97,7 @@ void ExplorerWindow::SetDependencies(
 
 void ExplorerWindow::InitUIElements() noexcept
 {
-    // ── Toolbar with buttons ──────────────────────────────────────────
+    // ── Legacy toolbar (keep for backward compat) ─────────────────────
     m_uiToolbar = std::make_unique<UI::Toolbar>();
     m_uiToolbarButtons.clear();
 
@@ -129,17 +129,89 @@ void ExplorerWindow::InitUIElements() noexcept
         m_uiToolbarButtons.push_back(btn);
     }
 
-    // ── Status bar (DragonUI) ─────────────────────────────────────────
-    m_dragonStatusBar = std::make_unique<DragonUI::UIPanel>();
-    m_dragonStatusBar->SetBackground(Theme::SemanticColor::WindowTitleBar);
-    m_dragonStatusBar->SetPadding(DragonUI::Thickness(8, 2, 8, 2));
+    // ── DragonUI Menu Bar ─────────────────────────────────────────────
+    m_dragonMenuBar = std::make_unique<DragonUI::UIMenuBar>();
 
-    m_dragonStatusLabel = std::make_unique<DragonUI::UILabel>(L"");
-    m_dragonStatusLabel->SetTextColor(Theme::SemanticColor::TextSecondary);
-    m_dragonStatusLabel->SetMinSize(0, 20);
-    m_dragonStatusBar->AddChild(std::move(m_dragonStatusLabel));
+    // File menu
+    {
+        auto fileMenu = std::make_unique<DragonUI::UIMenu>();
+        fileMenu->AddItem(L"New Folder",  [this]() {
+            if (m_pFS)
+            {
+                (void)m_pFS->CreateFolder(m_pFS->Combine(m_currentPath, L"New Folder"));
+                Refresh();
+            }
+        });
+        fileMenu->AddSeparator();
+        fileMenu->AddItem(L"Close", [this]() {
+            if (m_pWindow) m_pWindow->Close();
+        });
+        m_dragonMenuBar->AddMenu(L"File", std::move(fileMenu));
+    }
 
-    // ── Context menu ──────────────────────────────────────────────────
+    // Edit menu
+    {
+        auto editMenu = std::make_unique<DragonUI::UIMenu>();
+        editMenu->AddItem(L"Copy",  [this]() { HandleToolbarClick(ExplorerHitRegion::ToolbarCopy); });
+        editMenu->AddItem(L"Paste", [this]() { HandleToolbarClick(ExplorerHitRegion::ToolbarPaste); });
+        editMenu->AddSeparator();
+        editMenu->AddItem(L"Select All");
+        m_dragonMenuBar->AddMenu(L"Edit", std::move(editMenu));
+    }
+
+    // View menu
+    {
+        auto viewMenu = std::make_unique<DragonUI::UIMenu>();
+        auto* detailsItem = viewMenu->AddItem(L"Details",
+            [this]() { SetViewMode(DragonOS::Explorer::ViewMode::Details); });
+        detailsItem->SetChecked(true);
+        detailsItem->SetShortcut(L"Ctrl+D");
+        auto* listItem = viewMenu->AddItem(L"List",
+            [this]() { SetViewMode(DragonOS::Explorer::ViewMode::List); });
+        listItem->SetShortcut(L"Ctrl+L");
+        auto* gridItem = viewMenu->AddItem(L"Grid",
+            [this]() { SetViewMode(DragonOS::Explorer::ViewMode::Grid); });
+        gridItem->SetShortcut(L"Ctrl+G");
+        viewMenu->AddSeparator();
+        viewMenu->AddItem(L"Refresh", [this]() { Refresh(); });
+        m_dragonMenuBar->AddMenu(L"View", std::move(viewMenu));
+    }
+
+    // Help menu
+    {
+        auto helpMenu = std::make_unique<DragonUI::UIMenu>();
+        helpMenu->AddItem(L"About DragonOS Explorer");
+        m_dragonMenuBar->AddMenu(L"Help", std::move(helpMenu));
+    }
+
+    // ── DragonUI Toolbar ─────────────────────────────────────────────
+    m_dragonToolbar = std::make_unique<DragonUI::UIToolBar>();
+
+    const auto addTB = [this](const std::wstring& text, uint32_t icon, ExplorerHitRegion region) {
+        m_dragonToolbar->AddButton(text,
+            [this, region]() { HandleToolbarClick(region); }, icon);
+    };
+
+    addTB(L"", 0x25C0, ExplorerHitRegion::ToolbarBack);
+    addTB(L"", 0x25B6, ExplorerHitRegion::ToolbarForward);
+    addTB(L"", 0x2191, ExplorerHitRegion::ToolbarUp);
+    addTB(L"", 0x21BB, ExplorerHitRegion::ToolbarRefresh);
+    m_dragonToolbar->AddSeparator();
+    addTB(L"", 0x2795, ExplorerHitRegion::ToolbarNewFolder);
+    addTB(L"", 0x2702, ExplorerHitRegion::ToolbarCopy);
+    addTB(L"", 0x2702, ExplorerHitRegion::ToolbarPaste);
+    m_dragonToolbar->AddSeparator();
+    addTB(L"", 0x2716, ExplorerHitRegion::ToolbarDelete);
+    addTB(L"", 0x270E, ExplorerHitRegion::ToolbarRename);
+    addTB(L"", 0x2699, ExplorerHitRegion::ToolbarProperties);
+
+    // ── DragonUI Status Bar ───────────────────────────────────────────
+    m_dragonStatusBar = std::make_unique<DragonUI::UIStatusBar>();
+
+    // ── DragonUI Context Menu ─────────────────────────────────────────
+    m_dragonContextMenu = std::make_unique<DragonUI::UIContextMenu>();
+
+    // ── Legacy context menu ───────────────────────────────────────────
     m_uiContextMenu = std::make_unique<UI::ContextMenu>();
 }
 
@@ -361,17 +433,21 @@ void ExplorerWindow::RecalculateLayout() noexcept
     const float cw = m_layout.clientArea.width;
     const float ch = m_layout.clientArea.height;
 
+    const float menuBarH = 30.0f;
     const float toolbarH = 36.0f;
     const float addrBarH = 32.0f;
     const float statusH  = 24.0f;
     const float btnSize  = 26.0f;
     const float btnGap   = 2.0f;
 
-    // Toolbar
-    m_layout.toolbarArea = { cx + 4.0f, cy + 4.0f, cw - 8.0f, toolbarH };
+    // Menu bar
+    m_layout.menuBarArea = { cx + 4.0f, cy + 2.0f, cw - 8.0f, menuBarH };
 
+    // Toolbar
+    m_layout.toolbarArea = { cx + 4.0f, cy + menuBarH + 4.0f, cw - 8.0f, toolbarH };
+
+    float ty = cy + menuBarH + 6.0f;
     float tx = cx + 4.0f;
-    const float ty = cy + 6.0f;
     m_layout.btnBack       = { tx, ty, btnSize, btnSize }; tx += btnSize + btnGap;
     m_layout.btnForward    = { tx, ty, btnSize, btnSize }; tx += btnSize + btnGap;
     m_layout.btnUp         = { tx, ty, btnSize, btnSize }; tx += btnSize + btnGap;
@@ -386,7 +462,7 @@ void ExplorerWindow::RecalculateLayout() noexcept
     m_layout.btnProperties = { tx, ty, btnSize, btnSize }; tx += btnSize + btnGap;
 
     // Address bar
-    m_layout.addressBarArea = { cx + 4.0f, cy + toolbarH + 8.0f, cw - 8.0f, addrBarH };
+    m_layout.addressBarArea = { cx + 4.0f, cy + menuBarH + toolbarH + 10.0f, cw - 8.0f, addrBarH };
 
     // Navigation pane
     m_layout.navPaneWidth = 180.0f;
@@ -394,7 +470,7 @@ void ExplorerWindow::RecalculateLayout() noexcept
         cx + 4.0f,
         m_layout.addressBarArea.y + m_layout.addressBarArea.height + 4.0f,
         m_layout.navPaneWidth,
-        ch - toolbarH - addrBarH - statusH - 16.0f
+        ch - menuBarH - toolbarH - addrBarH - statusH - 18.0f
     };
 
     // File view
@@ -422,6 +498,26 @@ void ExplorerWindow::RecalculateLayout() noexcept
         };
         m_uiToolbar->Measure(D2D1::RectF(0, 0, cw - 8.0f, toolbarH));
         m_uiToolbar->Arrange(tbBounds);
+    }
+
+    if (m_dragonMenuBar)
+    {
+        DragonUI::LayoutSlot mbSlot{
+            m_layout.menuBarArea.x, m_layout.menuBarArea.y,
+            m_layout.menuBarArea.width, m_layout.menuBarArea.height
+        };
+        m_dragonMenuBar->Measure({0, 0, mbSlot.width, mbSlot.height});
+        m_dragonMenuBar->Arrange(mbSlot);
+    }
+
+    if (m_dragonToolbar)
+    {
+        DragonUI::LayoutSlot tbSlot{
+            m_layout.toolbarArea.x, m_layout.toolbarArea.y,
+            m_layout.toolbarArea.width, m_layout.toolbarArea.height
+        };
+        m_dragonToolbar->Measure({0, 0, tbSlot.width, tbSlot.height});
+        m_dragonToolbar->Arrange(tbSlot);
     }
 
     if (m_dragonStatusBar)
@@ -470,7 +566,37 @@ void ExplorerWindow::ProcessInput() noexcept
     const auto pos = m_pMouse->GetPosition();
     const auto& client = m_layout.clientArea;
 
-    // Handle context menu via UI framework
+    // Handle DragonUI context menu
+    if (m_contextMenuOpen && m_dragonContextMenu && m_dragonContextMenu->IsOpen())
+    {
+        float mx = pos.x;
+        float my = pos.y;
+
+        auto menuBounds = m_dragonContextMenu->GetMenu()
+            ? m_dragonContextMenu->GetMenu()->GetBounds() : DragonUI::LayoutSlot{};
+        bool overMenu = (mx >= menuBounds.x && mx <= menuBounds.x + menuBounds.width &&
+                         my >= menuBounds.y && my <= menuBounds.y + menuBounds.height);
+
+        if (overMenu)
+        {
+            DragonUI::MouseEventArgs me{mx, my, Input::MouseButton::Left, 1};
+            m_dragonContextMenu->GetMenu()->OnMouseEvent(DragonUI::EventType::MouseMove, me);
+
+            if (m_pMouse->WasLeftClicked())
+            {
+                me.button = Input::MouseButton::Left;
+                m_dragonContextMenu->GetMenu()->OnMouseEvent(DragonUI::EventType::Click, me);
+                CloseContextMenu();
+                return;
+            }
+        }
+        else if (m_pMouse->WasLeftClicked())
+        {
+            CloseContextMenu();
+        }
+    }
+
+    // Handle legacy context menu
     if (m_contextMenuOpen && m_uiContextMenu)
     {
         UI::UIEvent cmEvent;
@@ -478,11 +604,9 @@ void ExplorerWindow::ProcessInput() noexcept
         cmEvent.y = pos.y;
         cmEvent.button = Input::MouseButton::Left;
 
-        // Check if mouse is over the context menu
         UI::UIElement* hit = m_uiContextMenu->HitTest(pos.x, pos.y);
         if (hit)
         {
-            // Mouse move over context menu
             cmEvent.type = UI::UIEventType::MouseMove;
             m_uiContextMenu->OnEvent(cmEvent);
 
@@ -491,7 +615,7 @@ void ExplorerWindow::ProcessInput() noexcept
                 cmEvent.type = UI::UIEventType::Click;
                 m_uiContextMenu->OnEvent(cmEvent);
                 CloseContextMenu();
-                return; // Click handled
+                return;
             }
         }
         else
@@ -625,11 +749,18 @@ void ExplorerWindow::Render(Graphics::Renderer& renderer) noexcept
     RecalculateLayout();
 
     const auto& client = m_layout.clientArea;
+    DragonUI::RenderContext dctx(renderer, *m_pTheme);
 
     // Client area background
     const auto& bgCol = m_pTheme->GetColor(Theme::SemanticColor::WindowBackground);
     const D2D1_RECT_F clientRect = D2D1::RectF(client.x, client.y, client.Right(), client.Bottom());
     renderer.FillRectangle(clientRect, Graphics::Color{ bgCol.r, bgCol.g, bgCol.b, bgCol.a });
+
+    // Render DragonUI menu bar
+    if (m_dragonMenuBar)
+    {
+        m_dragonMenuBar->Render(dctx);
+    }
 
     // Render sub-components
     RenderToolbar(renderer);
@@ -946,7 +1077,7 @@ void ExplorerWindow::RenderFileEntryDetails(Graphics::Renderer& renderer, size_t
 
 void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
 {
-    if (!m_dragonStatusBar || !m_dragonStatusLabel || !m_pTheme) return;
+    if (!m_dragonStatusBar || !m_pTheme) return;
 
     // Build status text
     std::wstring statusText;
@@ -965,7 +1096,7 @@ void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
             statusText += L" (" + std::to_wstring(deniedCount) + L" inaccessible)";
     }
 
-    m_dragonStatusLabel->SetText(statusText);
+    m_dragonStatusBar->SetStatusText(statusText);
 
     DragonUI::RenderContext ctx(renderer, *m_pTheme);
     m_dragonStatusBar->Render(ctx);
@@ -977,59 +1108,115 @@ void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
 
 void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noexcept
 {
-    if (!m_uiContextMenu) return;
-
     m_contextMenuTargetEntry = entryIndex;
-    m_uiContextMenu->ClearItems();
 
-    if (entryIndex < m_entries.size())
+    // Build DragonUI context menu
+    if (m_dragonContextMenu)
     {
-        m_uiContextMenu->AddItem(L"Open", [this]() {
-            if (m_contextMenuTargetEntry < m_entries.size())
-            {
-                const auto& entry = m_entries[m_contextMenuTargetEntry];
-                if (entry.IsDirectory()) NavigateTo(entry.fullPath);
-            }
-        });
-        m_uiContextMenu->AddSeparator();
-        m_uiContextMenu->AddItem(L"Copy");
-        m_uiContextMenu->AddItem(L"Cut");
-        m_uiContextMenu->AddItem(L"Delete", [this]() {
-            if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
-            {
-                const auto& entry = m_entries[m_contextMenuTargetEntry];
-                if (entry.IsDirectory())
-                    (void)m_pFS->EraseDirectory(entry.fullPath, true);
-                else
-                    (void)m_pFS->EraseFile(entry.fullPath);
-                Refresh();
-            }
-        });
-        m_uiContextMenu->AddItem(L"Rename");
-        m_uiContextMenu->AddSeparator();
-        m_uiContextMenu->AddItem(L"Properties");
-    }
-    else
-    {
-        m_uiContextMenu->AddItem(L"New Folder", [this]() {
-            if (m_pFS)
-            {
-                (void)m_pFS->CreateFolder(m_pFS->Combine(m_currentPath, L"New Folder"));
-                Refresh();
-            }
-        });
-        m_uiContextMenu->AddSeparator();
-        m_uiContextMenu->AddItem(L"Paste");
-        m_uiContextMenu->AddSeparator();
-        m_uiContextMenu->AddItem(L"Properties");
+        m_dragonContextMenu->ClearItems();
+
+        if (entryIndex < m_entries.size())
+        {
+            m_dragonContextMenu->AddItem(L"Open", [this]() {
+                if (m_contextMenuTargetEntry < m_entries.size())
+                {
+                    const auto& entry = m_entries[m_contextMenuTargetEntry];
+                    if (entry.IsDirectory()) NavigateTo(entry.fullPath);
+                }
+            });
+            m_dragonContextMenu->AddSeparator();
+            m_dragonContextMenu->AddItem(L"Copy");
+            m_dragonContextMenu->AddItem(L"Cut");
+            m_dragonContextMenu->AddItem(L"Delete", [this]() {
+                if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
+                {
+                    const auto& entry = m_entries[m_contextMenuTargetEntry];
+                    if (entry.IsDirectory())
+                        (void)m_pFS->EraseDirectory(entry.fullPath, true);
+                    else
+                        (void)m_pFS->EraseFile(entry.fullPath);
+                    Refresh();
+                }
+            });
+            m_dragonContextMenu->AddItem(L"Rename");
+            m_dragonContextMenu->AddSeparator();
+            m_dragonContextMenu->AddItem(L"Properties");
+        }
+        else
+        {
+            m_dragonContextMenu->AddItem(L"New Folder", [this]() {
+                if (m_pFS)
+                {
+                    (void)m_pFS->CreateFolder(m_pFS->Combine(m_currentPath, L"New Folder"));
+                    Refresh();
+                }
+            });
+            m_dragonContextMenu->AddSeparator();
+            m_dragonContextMenu->AddItem(L"Paste");
+            m_dragonContextMenu->AddSeparator();
+            m_dragonContextMenu->AddItem(L"Properties");
+        }
+
+        m_dragonContextMenu->ShowAt(px, py);
     }
 
-    m_uiContextMenu->ShowAt(px, py);
+    // Legacy context menu for backward compat
+    if (m_uiContextMenu)
+    {
+        m_uiContextMenu->ClearItems();
+        if (entryIndex < m_entries.size())
+        {
+            m_uiContextMenu->AddItem(L"Open", [this]() {
+                if (m_contextMenuTargetEntry < m_entries.size())
+                {
+                    const auto& entry = m_entries[m_contextMenuTargetEntry];
+                    if (entry.IsDirectory()) NavigateTo(entry.fullPath);
+                }
+            });
+            m_uiContextMenu->AddSeparator();
+            m_uiContextMenu->AddItem(L"Copy");
+            m_uiContextMenu->AddItem(L"Cut");
+            m_uiContextMenu->AddItem(L"Delete", [this]() {
+                if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
+                {
+                    const auto& entry = m_entries[m_contextMenuTargetEntry];
+                    if (entry.IsDirectory())
+                        (void)m_pFS->EraseDirectory(entry.fullPath, true);
+                    else
+                        (void)m_pFS->EraseFile(entry.fullPath);
+                    Refresh();
+                }
+            });
+            m_uiContextMenu->AddItem(L"Rename");
+            m_uiContextMenu->AddSeparator();
+            m_uiContextMenu->AddItem(L"Properties");
+        }
+        else
+        {
+            m_uiContextMenu->AddItem(L"New Folder", [this]() {
+                if (m_pFS)
+                {
+                    (void)m_pFS->CreateFolder(m_pFS->Combine(m_currentPath, L"New Folder"));
+                    Refresh();
+                }
+            });
+            m_uiContextMenu->AddSeparator();
+            m_uiContextMenu->AddItem(L"Paste");
+            m_uiContextMenu->AddSeparator();
+            m_uiContextMenu->AddItem(L"Properties");
+        }
+        m_uiContextMenu->ShowAt(px, py);
+    }
+
     m_contextMenuOpen = true;
 }
 
 void ExplorerWindow::CloseContextMenu() noexcept
 {
+    if (m_dragonContextMenu)
+    {
+        m_dragonContextMenu->Close();
+    }
     if (m_uiContextMenu)
     {
         m_uiContextMenu->Close();
@@ -1040,10 +1227,19 @@ void ExplorerWindow::CloseContextMenu() noexcept
 
 void ExplorerWindow::RenderContextMenu(Graphics::Renderer& renderer) noexcept
 {
-    if (!m_uiContextMenu || !m_uiContextMenu->IsOpen() || !m_pTheme) return;
+    if (!m_pTheme) return;
 
-    auto uiRenderer = MakeUIRenderer(renderer);
-    m_uiContextMenu->Render(uiRenderer);
+    DragonUI::RenderContext dctx(renderer, *m_pTheme);
+
+    if (m_dragonContextMenu && m_dragonContextMenu->IsOpen())
+    {
+        m_dragonContextMenu->Render(dctx);
+    }
+    else if (m_uiContextMenu && m_uiContextMenu->IsOpen())
+    {
+        auto uiRenderer = MakeUIRenderer(renderer);
+        m_uiContextMenu->Render(uiRenderer);
+    }
 }
 
 // ============================================================================

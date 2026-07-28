@@ -2,6 +2,10 @@
 
 #include <Explorer/ExplorerTypes.hpp>
 
+#include <DragonUI/Controls/MenuBar.hpp>
+#include <DragonUI/Controls/ContextMenu.hpp>
+#include <DragonUI/Controls/ToolBar.hpp>
+#include <DragonUI/Controls/StatusBar.hpp>
 #include <DragonUI/Controls/Panel.hpp>
 #include <DragonUI/Controls/Label.hpp>
 #include <FileSystem/FileEntry.hpp>
@@ -137,9 +141,11 @@ private:
     std::vector<UI::Button*>     m_uiToolbarButtons;
     std::unique_ptr<UI::ContextMenu> m_uiContextMenu;
 
-    // DragonUI status bar (migrated from UI::StatusBar)
-    std::unique_ptr<DragonUI::UIPanel> m_dragonStatusBar;
-    std::unique_ptr<DragonUI::UILabel> m_dragonStatusLabel;
+    // DragonUI menus and toolbars (migrated from UI:: legacy)
+    std::unique_ptr<DragonUI::UIMenuBar> m_dragonMenuBar;
+    std::unique_ptr<DragonUI::UIToolBar> m_dragonToolbar;
+    std::unique_ptr<DragonUI::UIContextMenu> m_dragonContextMenu;
+    std::unique_ptr<DragonUI::UIStatusBar> m_dragonStatusBar;
 
     // ── Sub-components state ───────────────────────────────────────────
 

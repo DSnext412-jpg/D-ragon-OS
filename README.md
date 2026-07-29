@@ -89,19 +89,7 @@ WELCOME TO D'RAGON OS
 ═══════════════════════════════════════════════════════════════
 ```
 
----
 
-# 🖥 Desktop Preview
-
-> *(Replace with your own screenshots or GIFs.)*
-
-<div align="center">
-
-<img src="assets/screenshots/desktop.png" width="100%">
-
-</div>
-
----
 
 # 💡 Project Vision
 

@@ -21,7 +21,10 @@
 
 #include <Engine/System.hpp>
 
+#include <functional>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace DragonOS::Theme {
 
@@ -98,6 +101,77 @@ public:
      */
     void SetTheme(std::unique_ptr<Theme> theme) noexcept;
 
+    // ── Theme change notification ─────────────────────────────────────────
+
+    using ThemeChangedCallback = std::function<void(const Theme& newTheme)>;
+
+    /**
+     * @brief  RAII subscription to theme changes.
+     *
+     * Holds a pointer to its ThemeManager; the subscription is removed when
+     * the token is destroyed (or move-assigned over).  Keep the manager alive
+     * while any token is in scope.
+     */
+    class ThemeChangedListener {
+    public:
+        ThemeChangedListener() = default;
+        ThemeChangedListener(const ThemeChangedListener&) = delete;
+        ThemeChangedListener& operator=(const ThemeChangedListener&) = delete;
+
+        ThemeChangedListener(ThemeChangedListener&& other) noexcept { *this = std::move(other); }
+
+        ThemeChangedListener& operator=(ThemeChangedListener&& other) noexcept
+        {
+            if (this != &other)
+            {
+                Release();
+                m_manager = other.m_manager;
+                m_id = other.m_id;
+                other.m_id = 0;
+            }
+            return *this;
+        }
+
+        ~ThemeChangedListener() { Release(); }
+
+        [[nodiscard]] explicit operator bool() const noexcept { return m_id != 0; }
+        void Detach() noexcept { Release(); }
+
+    private:
+        friend class ThemeManager;
+
+        ThemeChangedListener(ThemeManager* manager, uint64_t id) noexcept
+            : m_manager(manager)
+            , m_id(id)
+        {
+        }
+
+        void Release() noexcept
+        {
+            if (m_manager && m_id != 0)
+            {
+                m_manager->RemoveThemeChangedListener(m_id);
+                m_id = 0;
+            }
+        }
+
+        ThemeManager* m_manager{};
+        uint64_t m_id{};
+    };
+
+    /**
+     * @brief  Register a callback invoked whenever the active theme is
+     *         replaced (including the theme created by Initialize).
+     *
+     * @param cb  The callback; receives the newly active theme.
+     *
+     * @return A RAII token that removes the subscription when destroyed.
+     */
+    ThemeChangedListener AddThemeChangedListener(ThemeChangedCallback cb) noexcept;
+
+    /// @brief  Convenience single-slot callback; replaced on every call.
+    void SetOnThemeChanged(ThemeChangedCallback cb) noexcept { m_onThemeChanged = std::move(cb); }
+
     // ── Convenience lookups (forwarded to the active theme) ──────────────
 
     /**
@@ -125,7 +199,20 @@ public:
     [[nodiscard]] const ThemeShadow& GetShadow() const noexcept;
 
 private:
+    friend class ThemeChangedListener;
+
+    void RemoveThemeChangedListener(uint64_t id) noexcept;
+
+    void NotifyThemeChanged() noexcept;
+
     std::unique_ptr<Theme> m_pCurrentTheme;
+    ThemeChangedCallback m_onThemeChanged;
+    struct ThemeListenerEntry {
+        uint64_t id{};
+        ThemeChangedCallback cb;
+    };
+    std::vector<ThemeListenerEntry> m_themeListeners;
+    uint64_t m_nextListenerId{1};
     bool m_initialized{ false };
 };
 

@@ -43,6 +43,17 @@
 //     VirtualViewport  — Math viewport; only visible rows are ever rendered
 //     ItemTemplate     — Reusable, data-binding-ready item templates
 //
+//   Data Binding (MVVM):
+//     Observable<T>           — Observable value with change notification (RAII listeners)
+//     Binding<T> / BindingManager — OneTime / OneWay / TwoWay synchronization
+//     ICommand / RelayCommand — Command abstraction for MVVM
+//     ViewModelBase           — Base class for view models (SetProperty helper)
+//     ObservableCollection<T> — Observable dynamic list with change events
+//     CollectionViewSource<T> — Bridges an ObservableCollection to a UIListView
+//     ViewModelValidator      — Validation rules over observable properties
+//     ValidationErrorTemplate — Renders validation errors in the view
+//     ThemeBinding            — Binds semantic theme colours reactively
+//
 // These controls integrate with ThemeManager, Input System, Focus Manager,
 // Layout Engine, Event System, and the Direct2D Renderer.
 

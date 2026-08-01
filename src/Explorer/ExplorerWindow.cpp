@@ -233,11 +233,12 @@ void ExplorerWindow::InitUIElements() noexcept
 
 void ExplorerWindow::InitDataControls() noexcept
 {
-    m_fileSource = std::make_shared<ExplorerFileSource>(&m_entries);
+    m_fileSource = DragonUI::CollectionViewSource<FileSystem::FileEntry>::Create(m_entries);
 
     // ── File list ────────────────────────────────────────────────────
     m_fileListView = std::make_unique<DragonUI::UIListView>();
     m_fileListView->SetItemSource(m_fileSource);
+    m_fileSource->SetListView(m_fileListView.get());
     m_fileListView->SetMode(DragonUI::ListViewMode::Details);
     m_fileListView->SetItemHeight(22.0f);
     m_fileListView->SetHeaderVisible(true);
@@ -316,9 +317,11 @@ void ExplorerWindow::InitDataControls() noexcept
 
 void ExplorerWindow::UpdateFileListSource() noexcept
 {
+    // The file list is data-bound: assigning m_entries already triggers
+    // CollectionViewSource to refresh the ListView.  Here we only reset the
+    // selection, which the binding intentionally leaves alone.
     if (m_fileListView)
     {
-        m_fileListView->Refresh();
         m_fileListView->GetSelection().Clear();
     }
 }
@@ -414,8 +417,8 @@ void ExplorerWindow::RenderNavTreeView(Graphics::Renderer& renderer) noexcept
 
 void ExplorerWindow::HandleListViewActivate(DragonUI::UIListView& /*list*/, int64_t index) noexcept
 {
-    if (index < 0 || index >= static_cast<int64_t>(m_entries.size())) { return; }
-    const auto& entry = m_entries[static_cast<size_t>(index)];
+    if (index < 0 || index >= static_cast<int64_t>(m_entries->size())) { return; }
+    const auto& entry = (*m_entries)[static_cast<size_t>(index)];
     if (entry.IsDirectory())
     {
         NavigateTo(entry.fullPath);
@@ -598,14 +601,14 @@ void ExplorerWindow::LoadDirectory(const std::wstring& path) noexcept
     if (!m_pFS) { return; }
 
     m_currentPath = path;
-    m_entries.clear();
+    m_entries->Clear();
     m_fileViewItems.clear();
     m_entriesLoaded = false;
 
     auto result = m_pFS->ListDirectory(path);
     if (result.success)
     {
-        m_entries = std::move(result.entries);
+        m_entries->Assign(std::move(result.entries));
     }
 
     m_entriesLoaded = true;
@@ -619,7 +622,7 @@ void ExplorerWindow::UpdateFileViewItems() noexcept
     RecalculateLayout();
 
     const ExplorerLayout& lay = m_layout;
-    if (m_entries.empty()) { return; }
+    if (m_entries->empty()) { return; }
 
     if (m_viewMode == ViewMode::Grid)
     {
@@ -630,7 +633,7 @@ void ExplorerWindow::UpdateFileViewItems() noexcept
         float x = lay.fileViewArea.x + gap;
         float y = lay.fileViewArea.y + gap - m_scrollOffset;
 
-        for (size_t i = 0; i < m_entries.size(); ++i)
+        for (size_t i = 0; i < m_entries->size(); ++i)
         {
             const int row = static_cast<int>(i) / cols;
             const int col = static_cast<int>(i) % cols;
@@ -658,7 +661,7 @@ void ExplorerWindow::UpdateFileViewItems() noexcept
         const float itemH = ExplorerLayout::ListItemHeight;
         float y = lay.fileViewArea.y + ExplorerLayout::SectionPadding - m_scrollOffset;
 
-        for (size_t i = 0; i < m_entries.size(); ++i)
+        for (size_t i = 0; i < m_entries->size(); ++i)
         {
             FileViewItem item;
             item.entryIndex = i;
@@ -683,7 +686,7 @@ void ExplorerWindow::UpdateFileViewItems() noexcept
         const float itemH = ExplorerLayout::DetailsItemHeight;
         float y = lay.fileViewArea.y + ExplorerLayout::SectionPadding + itemH - m_scrollOffset;
 
-        for (size_t i = 0; i < m_entries.size(); ++i)
+        for (size_t i = 0; i < m_entries->size(); ++i)
         {
             FileViewItem item;
             item.entryIndex = i;
@@ -1298,7 +1301,7 @@ void ExplorerWindow::RenderFileView(Graphics::Renderer& renderer) noexcept
         const auto& item = m_fileViewItems[i];
         const size_t entryIdx = item.entryIndex;
 
-        if (entryIdx >= m_entries.size()) { continue; }
+        if (entryIdx >= m_entries->size()) { continue; }
 
         const D2D1_RECT_F itemRect = D2D1::RectF(item.bounds.x, item.bounds.y, item.bounds.Right(), item.bounds.Bottom());
 
@@ -1310,7 +1313,7 @@ void ExplorerWindow::RenderFileView(Graphics::Renderer& renderer) noexcept
 
         const bool selected = std::find(m_selectedIndices.begin(), m_selectedIndices.end(), entryIdx) != m_selectedIndices.end();
         const bool hovered = (static_cast<int>(i) == m_hoveredFileIdx);
-        const bool denied = m_entries[entryIdx].accessDenied;
+        const bool denied = (*m_entries)[entryIdx].accessDenied;
 
         if (denied)
         {
@@ -1341,7 +1344,7 @@ void ExplorerWindow::RenderFileView(Graphics::Renderer& renderer) noexcept
     }
 
     // Empty state
-    if (m_entries.empty())
+    if (m_entries->empty())
     {
         const auto& secCol = m_pTheme->GetColor(Theme::SemanticColor::TextSecondary);
         const D2D1_RECT_F emptyRect = D2D1::RectF(fv.x + 16.0f, fv.y + 40.0f, fv.Right() - 16.0f, fv.y + 80.0f);
@@ -1351,8 +1354,8 @@ void ExplorerWindow::RenderFileView(Graphics::Renderer& renderer) noexcept
 
 void ExplorerWindow::RenderFileEntryGrid(Graphics::Renderer& renderer, size_t index, const Input::Bounds& bounds) noexcept
 {
-    if (index >= m_entries.size()) { return; }
-    const auto& entry = m_entries[index];
+    if (index >= m_entries->size()) { return; }
+    const auto& entry = (*m_entries)[index];
     const auto& textCol = m_pTheme->GetColor(Theme::SemanticColor::TextPrimary);
     const auto& accentCol = m_pTheme->GetColor(Theme::SemanticColor::Accent);
 
@@ -1386,8 +1389,8 @@ void ExplorerWindow::RenderFileEntryGrid(Graphics::Renderer& renderer, size_t in
 
 void ExplorerWindow::RenderFileEntryList(Graphics::Renderer& renderer, size_t index, const Input::Bounds& bounds) noexcept
 {
-    if (index >= m_entries.size()) { return; }
-    const auto& entry = m_entries[index];
+    if (index >= m_entries->size()) { return; }
+    const auto& entry = (*m_entries)[index];
     const auto& textCol = m_pTheme->GetColor(Theme::SemanticColor::TextPrimary);
 
     // Icon
@@ -1414,8 +1417,8 @@ void ExplorerWindow::RenderFileEntryList(Graphics::Renderer& renderer, size_t in
 
 void ExplorerWindow::RenderFileEntryDetails(Graphics::Renderer& renderer, size_t index, const Input::Bounds& bounds) noexcept
 {
-    if (index >= m_entries.size()) { return; }
-    const auto& entry = m_entries[index];
+    if (index >= m_entries->size()) { return; }
+    const auto& entry = (*m_entries)[index];
     const auto& textCol = m_pTheme->GetColor(Theme::SemanticColor::TextPrimary);
     const auto& secCol = m_pTheme->GetColor(Theme::SemanticColor::TextSecondary);
 
@@ -1459,10 +1462,10 @@ void ExplorerWindow::RenderStatusBar(Graphics::Renderer& renderer) noexcept
     else
     {
         size_t deniedCount = 0;
-        for (const auto& e : m_entries)
+        for (const auto& e : *m_entries)
             if (e.accessDenied) ++deniedCount;
 
-        statusText = std::to_wstring(m_entries.size()) + L" items";
+        statusText = std::to_wstring(m_entries->size()) + L" items";
         if (deniedCount > 0)
             statusText += L" (" + std::to_wstring(deniedCount) + L" inaccessible)";
     }
@@ -1486,12 +1489,12 @@ void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noex
     {
         m_dragonContextMenu->ClearItems();
 
-        if (entryIndex < m_entries.size())
+        if (entryIndex < m_entries->size())
         {
             m_dragonContextMenu->AddItem(L"Open", [this]() {
-                if (m_contextMenuTargetEntry < m_entries.size())
+                if (m_contextMenuTargetEntry < m_entries->size())
                 {
-                    const auto& entry = m_entries[m_contextMenuTargetEntry];
+                    const auto& entry = (*m_entries)[m_contextMenuTargetEntry];
                     if (entry.IsDirectory()) NavigateTo(entry.fullPath);
                 }
             });
@@ -1499,7 +1502,7 @@ void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noex
             m_dragonContextMenu->AddItem(L"Copy");
             m_dragonContextMenu->AddItem(L"Cut");
             m_dragonContextMenu->AddItem(L"Delete", [this]() {
-                if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
+                if (m_contextMenuTargetEntry < m_entries->size() && m_pFS)
                 {
                     ShowDeleteConfirmation(m_contextMenuTargetEntry);
                 }
@@ -1530,12 +1533,12 @@ void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noex
     if (m_uiContextMenu)
     {
         m_uiContextMenu->ClearItems();
-        if (entryIndex < m_entries.size())
+        if (entryIndex < m_entries->size())
         {
             m_uiContextMenu->AddItem(L"Open", [this]() {
-                if (m_contextMenuTargetEntry < m_entries.size())
+                if (m_contextMenuTargetEntry < m_entries->size())
                 {
-                    const auto& entry = m_entries[m_contextMenuTargetEntry];
+                    const auto& entry = (*m_entries)[m_contextMenuTargetEntry];
                     if (entry.IsDirectory()) NavigateTo(entry.fullPath);
                 }
             });
@@ -1543,7 +1546,7 @@ void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noex
             m_uiContextMenu->AddItem(L"Copy");
             m_uiContextMenu->AddItem(L"Cut");
             m_uiContextMenu->AddItem(L"Delete", [this]() {
-                if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
+                if (m_contextMenuTargetEntry < m_entries->size() && m_pFS)
                 {
                     ShowDeleteConfirmation(m_contextMenuTargetEntry);
                 }
@@ -1592,10 +1595,10 @@ void ExplorerWindow::CloseContextMenu() noexcept
 
 void ExplorerWindow::ShowDeleteConfirmation(size_t entryIndex) noexcept
 {
-    if (entryIndex >= m_entries.size() || !m_pFS)
+    if (entryIndex >= m_entries->size() || !m_pFS)
         return;
 
-    const auto& entry = m_entries[entryIndex];
+    const auto& entry = (*m_entries)[entryIndex];
     std::wstring message = L"Are you sure you want to delete \"" + entry.name + L"\"?";
     if (entry.IsDirectory())
         message += L"\nThe folder and all of its contents will be permanently deleted.";
@@ -1606,9 +1609,9 @@ void ExplorerWindow::ShowDeleteConfirmation(size_t entryIndex) noexcept
     box->SetOnClosed([this, entryIndex](DragonUI::UIDialog&, DragonUI::DialogResult result) noexcept {
         if (result != DragonUI::DialogResult::Yes)
             return;
-        if (entryIndex >= m_entries.size() || !m_pFS)
+        if (entryIndex >= m_entries->size() || !m_pFS)
             return;
-        const auto& target = m_entries[entryIndex];
+        const auto& target = (*m_entries)[entryIndex];
         if (target.IsDirectory())
             (void)m_pFS->EraseDirectory(target.fullPath, true);
         else
@@ -1747,7 +1750,7 @@ void ExplorerWindow::HandleToolbarClick(ExplorerHitRegion region) noexcept
         if (!m_selectedIndices.empty() && m_pFS)
         {
             const size_t count = m_selectedIndices.size();
-            const auto& first = m_entries[m_selectedIndices.front()];
+            const auto& first = (*m_entries)[m_selectedIndices.front()];
             std::wstring message = (count == 1)
                 ? L"Are you sure you want to delete \"" + first.name + L"\"?"
                 : L"Are you sure you want to delete these " + std::to_wstring(count) + L" items?";
@@ -1759,9 +1762,9 @@ void ExplorerWindow::HandleToolbarClick(ExplorerHitRegion region) noexcept
                     return;
                 for (const auto& selIdx : m_selectedIndices)
                 {
-                    if (selIdx < m_entries.size())
+                    if (selIdx < m_entries->size())
                     {
-                        const auto& entry = m_entries[selIdx];
+                        const auto& entry = (*m_entries)[selIdx];
                         if (entry.IsDirectory())
                             (void)m_pFS->EraseDirectory(entry.fullPath, true);
                         else
@@ -1814,7 +1817,7 @@ void ExplorerWindow::HandleFileViewClick(int index) noexcept
     if (index < 0 || index >= static_cast<int>(m_fileViewItems.size())) { return; }
     const size_t entryIdx = m_fileViewItems[index].entryIndex;
 
-    if (entryIdx >= m_entries.size()) { return; }
+    if (entryIdx >= m_entries->size()) { return; }
 
     if (m_pMouse->IsHeld(Input::MouseButton::Left) && (m_pMouse->IsHeld(Input::MouseButton::Right)))
     {
@@ -1834,8 +1837,8 @@ void ExplorerWindow::HandleFileViewDoubleClick(int index) noexcept
     if (index < 0 || index >= static_cast<int>(m_fileViewItems.size())) { return; }
     const size_t entryIdx = m_fileViewItems[index].entryIndex;
 
-    if (entryIdx >= m_entries.size()) { return; }
-    const auto& entry = m_entries[entryIdx];
+    if (entryIdx >= m_entries->size()) { return; }
+    const auto& entry = (*m_entries)[entryIdx];
 
     if (entry.IsDirectory())
     {
@@ -1862,7 +1865,7 @@ void ExplorerWindow::ClearSelection() noexcept
 
 void ExplorerWindow::SelectItem(size_t index, bool addToSelection) noexcept
 {
-    if (index >= m_entries.size()) { return; }
+    if (index >= m_entries->size()) { return; }
 
     if (!addToSelection)
     {
@@ -1897,7 +1900,7 @@ void ExplorerWindow::SelectRange(size_t from, size_t to) noexcept
     const size_t start = (std::min)(from, to);
     const size_t end = (std::max)(from, to);
 
-    for (size_t i = start; i <= end && i < m_entries.size(); ++i)
+    for (size_t i = start; i <= end && i < m_entries->size(); ++i)
     {
         m_selectedIndices.push_back(i);
     }

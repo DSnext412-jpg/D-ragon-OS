@@ -165,6 +165,19 @@ void SettingsWindow::BuildUI() noexcept
         return panel;
     };
 
+    // MVVM page rendered by DragonUI section (rendered separately)
+    auto buildMvvmPage = [this]() -> std::unique_ptr<UI::StackPanel> {
+        auto panel = std::make_unique<UI::StackPanel>(UI::Orientation::Vertical);
+        panel->SetSpacing(12.0f);
+        panel->SetPadding(12.0f, 8.0f, 12.0f, 8.0f);
+
+        auto label = std::make_unique<UI::Label>(L"(DragonUI MVVM controls below)");
+        label->SetStyle(UI::UIStyle::DefaultLabel());
+        panel->AddChild(std::move(label));
+
+        return panel;
+    };
+
     auto buildAppsPage = [this]() -> std::unique_ptr<UI::StackPanel> {
         auto panel = std::make_unique<UI::StackPanel>(UI::Orientation::Vertical);
         panel->SetSpacing(12.0f);
@@ -199,9 +212,12 @@ void SettingsWindow::BuildUI() noexcept
     auto pageApps = buildAppsPage();
     m_tabControl->AddPage(L"Apps", std::move(pageApps));
 
+    auto pageMvvm = buildMvvmPage();
+    m_tabControl->AddPage(L"MVVM", std::move(pageMvvm));
+
     m_statusBar = std::make_unique<UI::StatusBar>();
     m_statusBar->SetStyle(UI::UIStyle::DefaultStatusBar());
-    m_statusBar->SetText(L"Settings — Network section uses DragonUI");
+    m_statusBar->SetText(L"Settings — Network and MVVM sections use DragonUI");
 }
 
 void SettingsWindow::OnCategoryChanged(int index) noexcept
@@ -219,6 +235,11 @@ void SettingsWindow::Update() noexcept
     if (m_dragonUISection && m_selectedCategory == 3)
     {
         m_dragonUISection->Update(0.016f);
+    }
+
+    if (m_mvvmSection && m_selectedCategory == 5)
+    {
+        m_mvvmSection->Update(0.016f);
     }
 }
 
@@ -262,6 +283,12 @@ void SettingsWindow::Render(Graphics::Renderer& renderer) noexcept
             renderer, *m_pTheme, *m_pInput);
     }
 
+    if (!m_mvvmSection && m_pInput)
+    {
+        m_mvvmSection = std::make_unique<DragonUI::Demo::MvvmDemoSection>(
+            renderer, *m_pTheme, *m_pInput);
+    }
+
     const float w = m_pWindow->GetWidth();
     const float h = m_pWindow->GetHeight();
     m_viewportWidth = w;
@@ -289,6 +316,16 @@ void SettingsWindow::Render(Graphics::Renderer& renderer) noexcept
             sectionBounds.right - sectionBounds.left,
             sectionBounds.bottom - sectionBounds.top);
         m_dragonUISection->Render();
+    }
+
+    // MVVM tab (index 5) — render DragonUI MVVM section on top
+    if (m_mvvmSection && m_selectedCategory == 5)
+    {
+        D2D1_RECT_F sectionBounds = { 8, 8, w - 8, h - 36 };
+        m_mvvmSection->Resize(
+            sectionBounds.right - sectionBounds.left,
+            sectionBounds.bottom - sectionBounds.top);
+        m_mvvmSection->Render();
     }
 
     if (m_statusBar)

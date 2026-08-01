@@ -2,6 +2,7 @@
 #include <Settings/SettingsTypes.hpp>
 #include <UI/UI.hpp>
 #include <DragonUI/Demo/SettingsMigration.hpp>
+#include <DragonUI/Demo/MvvmDemo.hpp>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -55,6 +56,9 @@ private:
 
     // DragonUI migration section for Network tab
     std::unique_ptr<DragonUI::Demo::SettingsMigrationSection> m_dragonUISection;
+
+    // DragonUI MVVM demo section for MVVM tab
+    std::unique_ptr<DragonUI::Demo::MvvmDemoSection> m_mvvmSection;
 
     WindowManager::DragonWindow* m_pWindow{nullptr};
     Theme::ThemeManager*         m_pTheme{nullptr};

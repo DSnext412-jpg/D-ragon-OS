@@ -63,3 +63,15 @@
 #include <DragonUI/Dialogs/UIColorDialog.hpp>
 #include <DragonUI/Dialogs/UIFontDialog.hpp>
 #include <DragonUI/Dialogs/UIProgressDialog.hpp>
+
+// Data Binding (MVVM)
+#include <DragonUI/DataBinding/Observable.hpp>
+#include <DragonUI/DataBinding/Binding.hpp>
+#include <DragonUI/DataBinding/BindingManager.hpp>
+#include <DragonUI/DataBinding/ICommand.hpp>
+#include <DragonUI/DataBinding/ViewModelBase.hpp>
+#include <DragonUI/DataBinding/ObservableCollection.hpp>
+#include <DragonUI/DataBinding/CollectionViewSource.hpp>
+#include <DragonUI/DataBinding/Validation.hpp>
+#include <DragonUI/DataBinding/ErrorTemplate.hpp>
+#include <DragonUI/DataBinding/ThemeBinding.hpp>

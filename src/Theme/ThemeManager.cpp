@@ -19,6 +19,7 @@ bool ThemeManager::Initialize(Engine::EngineContext& /*ctx*/) noexcept
 
     m_pCurrentTheme = std::make_unique<Theme>(CreateDefaultDarkTheme());
     m_initialized = true;
+    NotifyThemeChanged();
     return true;
 }
 
@@ -43,6 +44,45 @@ const Theme& ThemeManager::GetCurrentTheme() const noexcept
 void ThemeManager::SetTheme(std::unique_ptr<Theme> theme) noexcept
 {
     m_pCurrentTheme = std::move(theme);
+    NotifyThemeChanged();
+}
+
+// ── Theme change notification ────────────────────────────────────────────
+
+ThemeManager::ThemeChangedListener ThemeManager::AddThemeChangedListener(ThemeChangedCallback cb) noexcept
+{
+    auto id = m_nextListenerId++;
+    m_themeListeners.push_back(ThemeListenerEntry{id, std::move(cb)});
+    return ThemeChangedListener{this, id};
+}
+
+void ThemeManager::RemoveThemeChangedListener(uint64_t id) noexcept
+{
+    for (auto it = m_themeListeners.begin(); it != m_themeListeners.end(); ++it)
+    {
+        if (it->id == id)
+        {
+            m_themeListeners.erase(it);
+            return;
+        }
+    }
+}
+
+void ThemeManager::NotifyThemeChanged() noexcept
+{
+    if (!m_pCurrentTheme)
+        return;
+    if (m_onThemeChanged)
+        m_onThemeChanged(*m_pCurrentTheme);
+    std::vector<ThemeChangedCallback> callbacks;
+    callbacks.reserve(m_themeListeners.size());
+    for (const auto& entry : m_themeListeners)
+        callbacks.push_back(entry.cb);
+    for (const auto& cb : callbacks)
+    {
+        if (cb)
+            cb(*m_pCurrentTheme);
+    }
 }
 
 // ── Convenience lookups ─────────────────────────────────────────────────

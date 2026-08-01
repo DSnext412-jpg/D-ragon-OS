@@ -29,6 +29,20 @@
 //     UIToolBar        — Toolbar with buttons, separators, drop-down buttons
 //     UIStatusBar      — Status bar with text, icons, progress indicator
 //
+//   Data Presentation Controls:
+//     UIListView       — Virtualized list with Details/List/Tile modes, icons,
+//                        single & multi selection, sorting, filtering, templates
+//     UITreeView       — Nested tree with expand/collapse, lazy loading, icons,
+//                        selection and keyboard navigation
+//     UIGridView       — Virtualized data grid with columns, resizable headers,
+//                        per-column sorting, selection and alternating rows
+//
+//   Selection & Virtualization:
+//     SelectionManager — Reusable selection engine (single/multi/range, Ctrl/Shift)
+//     VirtualItemSource— Abstract source for large data sets (tens of thousands)
+//     VirtualViewport  — Math viewport; only visible rows are ever rendered
+//     ItemTemplate     — Reusable, data-binding-ready item templates
+//
 // These controls integrate with ThemeManager, Input System, Focus Manager,
 // Layout Engine, Event System, and the Direct2D Renderer.
 

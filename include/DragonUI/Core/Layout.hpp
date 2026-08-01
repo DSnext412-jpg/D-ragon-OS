@@ -56,6 +56,10 @@ struct LayoutSlot {
             (std::max)(0.0f, height - t.Vertical())
         };
     }
+
+    [[nodiscard]] constexpr bool Contains(float px, float py) const noexcept {
+        return px >= x && px <= x + width && py >= y && py <= y + height;
+    }
 };
 
 } // namespace

@@ -8,6 +8,10 @@
 #include <DragonUI/Controls/StatusBar.hpp>
 #include <DragonUI/Controls/Panel.hpp>
 #include <DragonUI/Controls/Label.hpp>
+#include <DragonUI/Controls/ListView.hpp>
+#include <DragonUI/Controls/TreeView.hpp>
+#include <DragonUI/Core/FocusManager.hpp>
+#include <DragonUI/Dialogs/DialogManager.hpp>
 #include <FileSystem/FileEntry.hpp>
 #include <Input/HitTest.hpp>
 #include <UI/UI.hpp>
@@ -28,6 +32,31 @@ class ExplorerWindow final {
 public:
     ExplorerWindow() noexcept;
     ~ExplorerWindow() noexcept;
+
+    /**
+     * @brief  VirtualItemSource adaptor that exposes the current
+     *         directory's FileEntry vector to a DragonUI UIListView.
+     */
+    class ExplorerFileSource final : public DragonUI::VirtualItemSource {
+    public:
+        explicit ExplorerFileSource(const std::vector<FileSystem::FileEntry>* entries) noexcept
+            : m_entries(entries) {}
+
+        [[nodiscard]] int64_t GetCount() const noexcept override
+        {
+            return m_entries ? static_cast<int64_t>(m_entries->size()) : 0;
+        }
+
+        [[nodiscard]] std::any GetItem(int64_t index) const override
+        {
+            if (!m_entries || index < 0 || index >= static_cast<int64_t>(m_entries->size()))
+                return {};
+            return (*m_entries)[static_cast<size_t>(index)];
+        }
+
+    private:
+        const std::vector<FileSystem::FileEntry>* m_entries;
+    };
 
     ExplorerWindow(const ExplorerWindow&)            = delete;
     ExplorerWindow& operator=(const ExplorerWindow&) = delete;
@@ -137,6 +166,18 @@ private:
     void InitUIElements() noexcept;
     UI::UIRenderer MakeUIRenderer(Graphics::Renderer& renderer) const noexcept;
 
+    // ── DragonUI Data Controls (ListView / TreeView) ─────────────────
+
+    void InitDataControls() noexcept;
+    void UpdateFileListSource() noexcept;
+    void UpdateNavTree() noexcept;
+    void RenderFileListView(Graphics::Renderer& renderer) noexcept;
+    void RenderNavTreeView(Graphics::Renderer& renderer) noexcept;
+    bool HandleDataControlInput() noexcept;
+    void HandleListViewActivate(DragonUI::UIListView& list, int64_t index) noexcept;
+    void HandleTreeViewActivate(DragonUI::UITreeView& tree, DragonUI::UITreeNode& node) noexcept;
+    [[nodiscard]] uint32_t GetEntryIcon(const FileSystem::FileEntry& entry) noexcept;
+
     std::unique_ptr<UI::Toolbar> m_uiToolbar;
     std::vector<UI::Button*>     m_uiToolbarButtons;
     std::unique_ptr<UI::ContextMenu> m_uiContextMenu;
@@ -146,6 +187,12 @@ private:
     std::unique_ptr<DragonUI::UIToolBar> m_dragonToolbar;
     std::unique_ptr<DragonUI::UIContextMenu> m_dragonContextMenu;
     std::unique_ptr<DragonUI::UIStatusBar> m_dragonStatusBar;
+
+    // DragonUI data controls (file list + folder navigation)
+    std::unique_ptr<DragonUI::UIListView> m_fileListView;
+    std::unique_ptr<DragonUI::UITreeView> m_navTreeView;
+    std::shared_ptr<ExplorerFileSource>   m_fileSource;
+    std::vector<std::wstring>             m_navNodePaths;
 
     // ── Sub-components state ───────────────────────────────────────────
 
@@ -193,6 +240,14 @@ private:
 
     bool                 m_contextMenuOpen{ false };
     size_t               m_contextMenuTargetEntry{ static_cast<size_t>(-1) };
+
+    // ── Dialog framework (modal confirmations, file dialogs) ────────────
+
+    DragonUI::DialogManager  m_dialogs;
+    DragonUI::FocusManager   m_dialogFocus;
+
+    void ShowDeleteConfirmation(size_t entryIndex) noexcept;
+    void ShowFolderPicker() noexcept;
 
     // ── Scroll ─────────────────────────────────────────────────────────
 

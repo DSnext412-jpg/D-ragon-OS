@@ -1,4 +1,5 @@
 #include <DragonUI/DragonUISystem.hpp>
+#include <DragonUI/Demo/DataControlsDemo.hpp>
 #include <DragonUI/Demo/DemoElements.hpp>
 #include <DragonUI/Controls/Label.hpp>
 #include <DragonUI/Controls/Button.hpp>
@@ -28,10 +29,11 @@ bool DragonUISystem::Initialize(Engine::EngineContext& ctx) noexcept
 
     m_host = std::make_unique<WindowHost>(*renderer, *theme, *input);
 
-    // ── Layout Containers Demo ──────────────────────────────────────
-    // Demonstrates StackPanel, Grid, DockPanel, WrapPanel, Canvas,
-    // and ScrollViewer layout containers.
-    m_host->SetRoot(Demo::LayoutDemo::Create());
+    // ── Data Controls Demo ──────────────────────────────────────────
+    // Demonstrates UIListView, UITreeView, UIGridView, SelectionManager,
+    // item templates, virtualization (50k-row list) and the dialog
+    // framework (MessageBox, file / color / font / progress dialogs).
+    m_host->SetRoot(Demo::DataControlsDemo::Create(*m_host));
     m_host->Resize(ctx.GetViewportWidth(), ctx.GetViewportHeight());
 
     return true;
@@ -69,6 +71,9 @@ void DragonUISystem::Update(float deltaTime) noexcept
             break;
         case Input::EventType::MouseUp:
             m_host->OnMouseUp(evt.data.mouseButton.x, evt.data.mouseButton.y, evt.data.mouseButton.button);
+            break;
+        case Input::EventType::MouseWheel:
+            m_host->OnMouseWheel(evt.data.mouseWheel.delta, evt.data.mouseWheel.x, evt.data.mouseWheel.y);
             break;
         case Input::EventType::KeyDown:
             m_host->OnKeyDown(evt.data.key.key, ctrl, shift, alt);

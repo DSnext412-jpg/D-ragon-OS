@@ -44,3 +44,22 @@
 #include <DragonUI/Controls/ContextMenu.hpp>
 #include <DragonUI/Controls/ToolBar.hpp>
 #include <DragonUI/Controls/StatusBar.hpp>
+
+// Data Presentation Controls
+#include <DragonUI/Core/SelectionManager.hpp>
+#include <DragonUI/Core/VirtualItemSource.hpp>
+#include <DragonUI/Core/VirtualViewport.hpp>
+#include <DragonUI/Core/ItemTemplate.hpp>
+#include <DragonUI/Core/Glyph.hpp>
+#include <DragonUI/Controls/ListView.hpp>
+#include <DragonUI/Controls/TreeView.hpp>
+#include <DragonUI/Controls/GridView.hpp>
+
+// Dialogs
+#include <DragonUI/Dialogs/UIDialog.hpp>
+#include <DragonUI/Dialogs/DialogManager.hpp>
+#include <DragonUI/Dialogs/UIMessageBox.hpp>
+#include <DragonUI/Dialogs/FileDialog.hpp>
+#include <DragonUI/Dialogs/UIColorDialog.hpp>
+#include <DragonUI/Dialogs/UIFontDialog.hpp>
+#include <DragonUI/Dialogs/UIProgressDialog.hpp>

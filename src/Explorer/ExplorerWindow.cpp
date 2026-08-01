@@ -1,6 +1,10 @@
 #include <Explorer/ExplorerWindow.hpp>
 
+#include <DragonUI/Core/Glyph.hpp>
 #include <DragonUI/Core/RenderContext.hpp>
+#include <DragonUI/Dialogs/DialogManager.hpp>
+#include <DragonUI/Dialogs/UIMessageBox.hpp>
+#include <DragonUI/Dialogs/FileDialog.hpp>
 #include <FileSystem/FileSystemService.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Input/MouseManager.hpp>
@@ -11,7 +15,10 @@
 #include <WindowManager/DragonWindow.hpp>
 
 #include <algorithm>
+#include <any>
+#include <ctime>
 #include <cwchar>
+#include <cwctype>
 #include <d2d1.h>
 
 namespace DragonOS::Explorer {
@@ -83,6 +90,7 @@ void ExplorerWindow::SetDependencies(
 
     // ── Initialize UI Framework elements ──────────────────────────
     InitUIElements();
+    InitDataControls();
 
     // Start at Desktop
     const auto desktopPath = m_pFS->GetKnownFolderPath(FileSystem::KnownFolder::Desktop);
@@ -141,6 +149,10 @@ void ExplorerWindow::InitUIElements() noexcept
                 (void)m_pFS->CreateFolder(m_pFS->Combine(m_currentPath, L"New Folder"));
                 Refresh();
             }
+        });
+        fileMenu->AddSeparator();
+        fileMenu->AddItem(L"Go To Folder...", [this]() {
+            ShowFolderPicker();
         });
         fileMenu->AddSeparator();
         fileMenu->AddItem(L"Close", [this]() {
@@ -213,6 +225,295 @@ void ExplorerWindow::InitUIElements() noexcept
 
     // ── Legacy context menu ───────────────────────────────────────────
     m_uiContextMenu = std::make_unique<UI::ContextMenu>();
+}
+
+// ============================================================================
+//  DragonUI Data Controls (ListView / TreeView)
+// ============================================================================
+
+void ExplorerWindow::InitDataControls() noexcept
+{
+    m_fileSource = std::make_shared<ExplorerFileSource>(&m_entries);
+
+    // ── File list ────────────────────────────────────────────────────
+    m_fileListView = std::make_unique<DragonUI::UIListView>();
+    m_fileListView->SetItemSource(m_fileSource);
+    m_fileListView->SetMode(DragonUI::ListViewMode::Details);
+    m_fileListView->SetItemHeight(22.0f);
+    m_fileListView->SetHeaderVisible(true);
+
+    m_fileListView->SetPrimaryTextProvider([](const std::any& item) -> std::wstring {
+        const auto* e = std::any_cast<FileSystem::FileEntry>(&item);
+        return e ? e->name : L"";
+    });
+    m_fileListView->SetPrimaryIconProvider([this](const std::any& item) -> uint32_t {
+        const auto* e = std::any_cast<FileSystem::FileEntry>(&item);
+        return e ? GetEntryIcon(*e) : 0x1F4C4;
+    });
+
+    // Name column
+    auto nameCol = DragonUI::UIListView::Column{};
+    nameCol.title = L"Name";
+    nameCol.width = 260.0f;
+    nameCol.getText = [](const std::any& item) -> std::wstring {
+        const auto* e = std::any_cast<FileSystem::FileEntry>(&item);
+        return e ? e->name : L"";
+    };
+    nameCol.sortable = true;
+
+    // Size column
+    auto sizeCol = DragonUI::UIListView::Column{};
+    sizeCol.title = L"Size";
+    sizeCol.width = 110.0f;
+    sizeCol.getText = [](const std::any& item) -> std::wstring {
+        const auto* e = std::any_cast<FileSystem::FileEntry>(&item);
+        if (!e) { return L""; }
+        if (e->IsDirectory()) { return L""; }
+        if (e->size >= 1024ull * 1024ull * 1024ull)
+            return std::to_wstring(e->size / (1024ull * 1024ull * 1024ull)) + L" GB";
+        if (e->size >= 1024ull * 1024ull)
+            return std::to_wstring(e->size / (1024ull * 1024ull)) + L" MB";
+        if (e->size >= 1024ull)
+            return std::to_wstring(e->size / 1024ull) + L" KB";
+        return std::to_wstring(e->size) + L" B";
+    };
+    sizeCol.sortable = true;
+
+    // Date Modified column
+    auto dateCol = DragonUI::UIListView::Column{};
+    dateCol.title = L"Date Modified";
+    dateCol.width = 160.0f;
+    dateCol.getText = [](const std::any& item) -> std::wstring {
+        const auto* e = std::any_cast<FileSystem::FileEntry>(&item);
+        if (!e) { return L""; }
+        wchar_t buf[64]{};
+        std::time_t t = static_cast<std::time_t>(e->lastModified);
+        std::tm tmv{};
+        (void)localtime_s(&tmv, &t);
+        (void)std::wcsftime(buf, 64, L"%Y-%m-%d %H:%M", &tmv);
+        return buf;
+    };
+    dateCol.sortable = true;
+
+    m_fileListView->AddColumn(std::move(nameCol));
+    m_fileListView->AddColumn(std::move(sizeCol));
+    m_fileListView->AddColumn(std::move(dateCol));
+
+    // Double-click opens folders
+    m_fileListView->SetOnItemActivated([this](DragonUI::UIListView& list, int64_t index) {
+        HandleListViewActivate(list, index);
+    });
+
+    // ── Navigation pane tree ─────────────────────────────────────────
+    m_navTreeView = std::make_unique<DragonUI::UITreeView>();
+    m_navTreeView->SetRowHeight(24.0f);
+    m_navTreeView->SetOnNodeActivated([this](DragonUI::UITreeView& tree, DragonUI::UITreeNode& node) {
+        HandleTreeViewActivate(tree, node);
+    });
+
+    UpdateNavTree();
+}
+
+void ExplorerWindow::UpdateFileListSource() noexcept
+{
+    if (m_fileListView)
+    {
+        m_fileListView->Refresh();
+        m_fileListView->GetSelection().Clear();
+    }
+}
+
+uint32_t ExplorerWindow::GetEntryIcon(const FileSystem::FileEntry& entry) noexcept
+{
+    if (entry.IsDirectory()) { return 0x1F4C1; }
+
+    const std::wstring ext = [&entry]() {
+        const auto dot = entry.name.find_last_of(L'.');
+        if (dot == std::wstring::npos) { return std::wstring{}; }
+        std::wstring e = entry.name.substr(dot + 1);
+        for (auto& c : e) { c = static_cast<wchar_t>(std::towlower(c)); }
+        return e;
+    }();
+
+    if (ext == L"txt" || ext == L"md" || ext == L"log") { return 0x1F4C4; }
+    if (ext == L"jpg" || ext == L"jpeg" || ext == L"png" || ext == L"gif" || ext == L"bmp" || ext == L"webp")
+        return 0x1F5BC;
+    if (ext == L"mp3" || ext == L"wav" || ext == L"flac" || ext == L"ogg") { return 0x1F3B5; }
+    if (ext == L"mp4" || ext == L"mkv" || ext == L"avi" || ext == L"mov") { return 0x1F3AC; }
+    if (ext == L"exe" || ext == L"bat" || ext == L"cmd") { return 0x1F4BB; }
+    if (ext == L"zip" || ext == L"rar" || ext == L"7z" || ext == L"tar" || ext == L"gz") { return 0x1F4E6; }
+    return 0x1F4C4;
+}
+
+void ExplorerWindow::UpdateNavTree() noexcept
+{
+    if (!m_navTreeView) { return; }
+
+    m_navTreeView->ClearNodes();
+    m_navNodePaths.clear();
+
+    const auto addPath = [this](const std::wstring& path) -> std::wstring* {
+        m_navNodePaths.push_back(path);
+        return &m_navNodePaths.back();
+    };
+
+    // Root container
+    auto* root = m_navTreeView->AddRootNode(L"Quick Access", 0x1F4C1);
+    m_navNodePaths.push_back(L"");
+    root->SetUserData(&m_navNodePaths.back());
+    root->SetExpanded(true);
+
+    for (const auto& entry : m_navPaneEntries)
+    {
+        auto* node = root->AddChild(entry.displayName, entry.iconGlyph);
+        node->SetUserData(addPath(entry.path));
+        if (entry.displayName == L"This PC")
+        {
+            node->SetExpanded(true);
+            // Enumerate drives under "This PC"
+            if (m_pFS)
+            {
+                const auto drives = m_pFS->GetLogicalDrives();
+                for (const auto& drive : drives)
+                {
+                    auto* driveNode = node->AddChild(drive, 0x1F4BE);
+                    driveNode->SetUserData(addPath(drive));
+                }
+            }
+        }
+    }
+
+    m_navTreeView->Refresh();
+}
+
+void ExplorerWindow::RenderFileListView(Graphics::Renderer& renderer) noexcept
+{
+    if (!m_fileListView) { return; }
+
+    const ExplorerLayout& lay = m_layout;
+
+    const float availW = lay.fileViewArea.width;
+    if (m_viewMode == ViewMode::Details || m_viewMode == ViewMode::List)
+    {
+        DragonUI::RenderContext dctx(renderer, *m_pTheme);
+        m_fileListView->SetBounds({ lay.fileViewArea.x, lay.fileViewArea.y, availW, lay.fileViewArea.height });
+        m_fileListView->Render(dctx);
+    }
+}
+
+void ExplorerWindow::RenderNavTreeView(Graphics::Renderer& renderer) noexcept
+{
+    if (!m_navTreeView) { return; }
+
+    const ExplorerLayout& lay = m_layout;
+
+    DragonUI::RenderContext dctx(renderer, *m_pTheme);
+    m_navTreeView->SetBounds({ lay.navPaneArea.x, lay.navPaneArea.y, lay.navPaneArea.width, lay.navPaneArea.height });
+    m_navTreeView->Render(dctx);
+}
+
+void ExplorerWindow::HandleListViewActivate(DragonUI::UIListView& /*list*/, int64_t index) noexcept
+{
+    if (index < 0 || index >= static_cast<int64_t>(m_entries.size())) { return; }
+    const auto& entry = m_entries[static_cast<size_t>(index)];
+    if (entry.IsDirectory())
+    {
+        NavigateTo(entry.fullPath);
+    }
+}
+
+void ExplorerWindow::HandleTreeViewActivate(DragonUI::UITreeView& /*tree*/, DragonUI::UITreeNode& node) noexcept
+{
+    const std::wstring* path = node.GetUserData<std::wstring>();
+    if (path && !path->empty())
+    {
+        NavigateTo(*path);
+    }
+}
+
+bool ExplorerWindow::HandleDataControlInput() noexcept
+{
+    if (!m_fileListView || !m_navTreeView || !m_pMouse) { return false; }
+
+    const float mx = m_pMouse->GetX();
+    const float my = m_pMouse->GetY();
+
+    const DragonUI::LayoutSlot& fileBounds = m_fileListView->GetBounds();
+    const DragonUI::LayoutSlot& navBounds  = m_navTreeView->GetBounds();
+
+    const bool overFile = mx >= fileBounds.x && mx <= fileBounds.x + fileBounds.width &&
+                          my >= fileBounds.y && my <= fileBounds.y + fileBounds.height;
+    const bool overNav = mx >= navBounds.x && mx <= navBounds.x + navBounds.width &&
+                         my >= navBounds.y && my <= navBounds.y + navBounds.height;
+
+    // Scroll wheel scrolls whichever control is hovered.
+    const float wheel = m_pMouse->GetWheelDelta();
+    if (std::abs(wheel) > 0.5f)
+    {
+        DragonUI::MouseEventArgs wev{mx, my};
+        wev.wheelDelta = wheel;
+        if (overFile && m_viewMode != ViewMode::Grid) { m_fileListView->OnMouseEvent(DragonUI::EventType::MouseMove, wev); return true; }
+        if (overNav)  { m_navTreeView->OnMouseEvent(DragonUI::EventType::MouseMove, wev); return true; }
+    }
+
+    const bool clicked = m_pMouse->WasClicked(Input::MouseButton::Left);
+    const bool released = m_pMouse->WasReleased(Input::MouseButton::Left);
+    const bool doubleClicked = m_pMouse->WasDoubleClicked(Input::MouseButton::Left);
+
+    if (!clicked && !released && !doubleClicked)
+    {
+        if (overFile && m_viewMode != ViewMode::Grid) { m_fileListView->OnMouseEvent(DragonUI::EventType::MouseMove, {mx, my}); }
+        else if (overNav) { m_navTreeView->OnMouseEvent(DragonUI::EventType::MouseMove, {mx, my}); }
+        return false;
+    }
+
+    if (clicked || doubleClicked)
+    {
+        DragonUI::MouseEventArgs dev{mx, my, Input::MouseButton::Left, 1};
+
+        if (overFile && m_viewMode != ViewMode::Grid)
+        {
+            if (doubleClicked)
+            {
+                m_fileListView->OnMouseEvent(DragonUI::EventType::MouseDown, dev);
+                m_fileListView->OnMouseEvent(DragonUI::EventType::DoubleClick, dev);
+            }
+            else
+            {
+                m_fileListView->OnMouseEvent(DragonUI::EventType::MouseDown, dev);
+            }
+            m_selectedIndices.clear();
+            for (const int64_t idx : m_fileListView->GetSelection().GetSelectedIndices())
+            {
+                m_selectedIndices.push_back(static_cast<size_t>(idx));
+            }
+            return true;
+        }
+
+        if (overNav)
+        {
+            if (doubleClicked)
+            {
+                m_navTreeView->OnMouseEvent(DragonUI::EventType::MouseDown, dev);
+                m_navTreeView->OnMouseEvent(DragonUI::EventType::DoubleClick, dev);
+            }
+            else
+            {
+                m_navTreeView->OnMouseEvent(DragonUI::EventType::MouseDown, dev);
+            }
+            return true;
+        }
+    }
+
+    if (released)
+    {
+        DragonUI::MouseEventArgs dev{mx, my, Input::MouseButton::Left, 1};
+        if (overFile && m_viewMode != ViewMode::Grid) { m_fileListView->OnMouseEvent(DragonUI::EventType::MouseUp, dev); }
+        else if (overNav) { m_navTreeView->OnMouseEvent(DragonUI::EventType::MouseUp, dev); }
+        return true;
+    }
+
+    return false;
 }
 
 UI::UIRenderer ExplorerWindow::MakeUIRenderer(Graphics::Renderer& renderer) const noexcept
@@ -308,6 +609,7 @@ void ExplorerWindow::LoadDirectory(const std::wstring& path) noexcept
     }
 
     m_entriesLoaded = true;
+    UpdateFileListSource();
     UpdateFileViewItems();
 }
 
@@ -530,6 +832,18 @@ void ExplorerWindow::RecalculateLayout() noexcept
         m_dragonStatusBar->Arrange(sbSlot);
     }
 
+    // ── DragonUI Data Controls layout ────────────────────────────────
+    if (m_navTreeView)
+    {
+        m_navTreeView->SetBounds({ m_layout.navPaneArea.x, m_layout.navPaneArea.y,
+                                   m_layout.navPaneArea.width, m_layout.navPaneArea.height });
+    }
+    if (m_fileListView)
+    {
+        m_fileListView->SetBounds({ m_layout.fileViewArea.x, m_layout.fileViewArea.y,
+                                    m_layout.fileViewArea.width, m_layout.fileViewArea.height });
+    }
+
     m_layout.scrollOffset = m_scrollOffset;
 }
 
@@ -555,7 +869,14 @@ void ExplorerWindow::Update() noexcept
         UpdateFileViewItems();
     }
 
+    if (m_pWindow)
+        m_dialogs.SetViewport(static_cast<float>(m_pWindow->GetWidth()),
+                              static_cast<float>(m_pWindow->GetHeight()));
+
     ProcessInput();
+
+    if (!m_dialogs.IsEmpty())
+        m_dialogs.Update(0.016f, m_dialogFocus);
 }
 
 void ExplorerWindow::ProcessInput() noexcept
@@ -565,6 +886,35 @@ void ExplorerWindow::ProcessInput() noexcept
 
     const auto pos = m_pMouse->GetPosition();
     const auto& client = m_layout.clientArea;
+
+    // Route input to open dialogs first (modal dialogs block the rest).
+    if (!m_dialogs.IsEmpty())
+    {
+        const float mx = pos.x;
+        const float my = pos.y;
+
+        if (m_dialogs.HandleMouseMove(mx, my))
+        {
+            m_toolbarHover = ExplorerHitRegion::None;
+            m_hoveredNavIdx = -1;
+            m_hoveredFileIdx = -1;
+        }
+        if (m_pMouse->WasLeftClicked())
+            m_dialogs.HandleMouseDown(mx, my, Input::MouseButton::Left);
+        if (m_pMouse->WasReleased(Input::MouseButton::Left))
+            m_dialogs.HandleMouseUp(mx, my, Input::MouseButton::Left);
+        if (m_pMouse->WasRightClicked())
+            m_dialogs.HandleMouseDown(mx, my, Input::MouseButton::Right);
+        if (m_pMouse->WasReleased(Input::MouseButton::Right))
+            m_dialogs.HandleMouseUp(mx, my, Input::MouseButton::Right);
+
+        const float wheelDelta = m_pMouse->GetWheelDelta();
+        if (std::abs(wheelDelta) > 0.5f)
+            m_dialogs.HandleMouseWheel(wheelDelta, mx, my);
+
+        if (m_dialogs.HasModalOpen())
+            return;
+    }
 
     // Handle DragonUI context menu
     if (m_contextMenuOpen && m_dragonContextMenu && m_dragonContextMenu->IsOpen())
@@ -632,6 +982,12 @@ void ExplorerWindow::ProcessInput() noexcept
         m_toolbarHover = ExplorerHitRegion::None;
         m_hoveredNavIdx = -1;
         m_hoveredFileIdx = -1;
+        return;
+    }
+
+    // Route mouse events over the DragonUI data controls (ListView / TreeView).
+    if (HandleDataControlInput())
+    {
         return;
     }
 
@@ -765,14 +1121,29 @@ void ExplorerWindow::Render(Graphics::Renderer& renderer) noexcept
     // Render sub-components
     RenderToolbar(renderer);
     RenderAddressBar(renderer);
-    RenderNavigationPane(renderer);
-    RenderFileView(renderer);
+    RenderNavTreeView(renderer);
+    if (m_viewMode == ViewMode::Grid)
+    {
+        RenderFileView(renderer);
+    }
+    else
+    {
+        RenderFileListView(renderer);
+    }
     RenderStatusBar(renderer);
 
     // Context menu (on top)
     if (m_contextMenuOpen)
     {
         RenderContextMenu(renderer);
+    }
+
+    // Dialogs (always on top)
+    if (!m_dialogs.IsEmpty())
+    {
+        const float w = m_pWindow ? static_cast<float>(m_pWindow->GetWidth()) : m_layout.clientArea.Right();
+        const float h = m_pWindow ? static_cast<float>(m_pWindow->GetHeight()) : m_layout.clientArea.Bottom();
+        m_dialogs.Render(dctx, w, h);
     }
 }
 
@@ -1130,12 +1501,7 @@ void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noex
             m_dragonContextMenu->AddItem(L"Delete", [this]() {
                 if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
                 {
-                    const auto& entry = m_entries[m_contextMenuTargetEntry];
-                    if (entry.IsDirectory())
-                        (void)m_pFS->EraseDirectory(entry.fullPath, true);
-                    else
-                        (void)m_pFS->EraseFile(entry.fullPath);
-                    Refresh();
+                    ShowDeleteConfirmation(m_contextMenuTargetEntry);
                 }
             });
             m_dragonContextMenu->AddItem(L"Rename");
@@ -1179,12 +1545,7 @@ void ExplorerWindow::ShowContextMenu(float px, float py, size_t entryIndex) noex
             m_uiContextMenu->AddItem(L"Delete", [this]() {
                 if (m_contextMenuTargetEntry < m_entries.size() && m_pFS)
                 {
-                    const auto& entry = m_entries[m_contextMenuTargetEntry];
-                    if (entry.IsDirectory())
-                        (void)m_pFS->EraseDirectory(entry.fullPath, true);
-                    else
-                        (void)m_pFS->EraseFile(entry.fullPath);
-                    Refresh();
+                    ShowDeleteConfirmation(m_contextMenuTargetEntry);
                 }
             });
             m_uiContextMenu->AddItem(L"Rename");
@@ -1223,6 +1584,57 @@ void ExplorerWindow::CloseContextMenu() noexcept
     }
     m_contextMenuOpen = false;
     m_contextMenuTargetEntry = static_cast<size_t>(-1);
+}
+
+// ============================================================================
+//  Dialog framework helpers
+// ============================================================================
+
+void ExplorerWindow::ShowDeleteConfirmation(size_t entryIndex) noexcept
+{
+    if (entryIndex >= m_entries.size() || !m_pFS)
+        return;
+
+    const auto& entry = m_entries[entryIndex];
+    std::wstring message = L"Are you sure you want to delete \"" + entry.name + L"\"?";
+    if (entry.IsDirectory())
+        message += L"\nThe folder and all of its contents will be permanently deleted.";
+
+    auto box = DragonUI::UIMessageBox::Create(
+        L"Delete", message,
+        DragonUI::MessageBoxButtons::YesNo, DragonUI::MessageBoxIcon::Warning, true);
+    box->SetOnClosed([this, entryIndex](DragonUI::UIDialog&, DragonUI::DialogResult result) noexcept {
+        if (result != DragonUI::DialogResult::Yes)
+            return;
+        if (entryIndex >= m_entries.size() || !m_pFS)
+            return;
+        const auto& target = m_entries[entryIndex];
+        if (target.IsDirectory())
+            (void)m_pFS->EraseDirectory(target.fullPath, true);
+        else
+            (void)m_pFS->EraseFile(target.fullPath);
+        Refresh();
+    });
+    m_dialogs.ShowDialog(std::move(box), m_dialogFocus);
+}
+
+void ExplorerWindow::ShowFolderPicker() noexcept
+{
+    if (!m_pFS)
+        return;
+
+    auto dlg = std::make_unique<DragonUI::UIFolderDialog>(
+        *m_pFS, L"Select Folder", m_currentPath);
+    auto* raw = dlg.get();
+    dlg->SetOnClosed([this, raw](DragonUI::UIDialog&, DragonUI::DialogResult result) noexcept {
+        if (result == DragonUI::DialogResult::OK && raw)
+        {
+            const auto& folder = raw->GetSelectedFolder();
+            if (!folder.empty() && m_pFS->Exists(folder))
+                NavigateTo(folder);
+        }
+    });
+    m_dialogs.ShowDialog(std::move(dlg), m_dialogFocus);
 }
 
 void ExplorerWindow::RenderContextMenu(Graphics::Renderer& renderer) noexcept
@@ -1334,23 +1746,32 @@ void ExplorerWindow::HandleToolbarClick(ExplorerHitRegion region) noexcept
     case ExplorerHitRegion::ToolbarDelete:
         if (!m_selectedIndices.empty() && m_pFS)
         {
-            for (const auto& selIdx : m_selectedIndices)
-            {
-                if (selIdx < m_entries.size())
+            const size_t count = m_selectedIndices.size();
+            const auto& first = m_entries[m_selectedIndices.front()];
+            std::wstring message = (count == 1)
+                ? L"Are you sure you want to delete \"" + first.name + L"\"?"
+                : L"Are you sure you want to delete these " + std::to_wstring(count) + L" items?";
+            auto box = DragonUI::UIMessageBox::Create(
+                L"Delete", message,
+                DragonUI::MessageBoxButtons::YesNo, DragonUI::MessageBoxIcon::Warning, true);
+            box->SetOnClosed([this](DragonUI::UIDialog&, DragonUI::DialogResult result) noexcept {
+                if (result != DragonUI::DialogResult::Yes || !m_pFS)
+                    return;
+                for (const auto& selIdx : m_selectedIndices)
                 {
-                    const auto& entry = m_entries[selIdx];
-                    if (entry.IsDirectory())
+                    if (selIdx < m_entries.size())
                     {
-                        (void)m_pFS->EraseDirectory(entry.fullPath, true);
-                    }
-                    else
-                    {
-                        (void)m_pFS->EraseFile(entry.fullPath);
+                        const auto& entry = m_entries[selIdx];
+                        if (entry.IsDirectory())
+                            (void)m_pFS->EraseDirectory(entry.fullPath, true);
+                        else
+                            (void)m_pFS->EraseFile(entry.fullPath);
                     }
                 }
-            }
-            ClearSelection();
-            Refresh();
+                ClearSelection();
+                Refresh();
+            });
+            m_dialogs.ShowDialog(std::move(box), m_dialogFocus);
         }
         break;
     case ExplorerHitRegion::ToolbarCopy:

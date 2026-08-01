@@ -29,6 +29,9 @@ struct MouseEventArgs {
     Input::MouseButton button{Input::MouseButton::Left};
     int clickCount{1};
     float wheelDelta{};
+    bool ctrl{};
+    bool shift{};
+    bool alt{};
 };
 
 struct KeyEventArgs {

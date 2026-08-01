@@ -13,6 +13,8 @@
 
 namespace DragonOS::DragonUI {
 
+class DialogManager;
+
 class WindowHost final {
 public:
     WindowHost(Graphics::Renderer& renderer, const Theme::ThemeManager& theme, Input::InputManager& input) noexcept;
@@ -35,10 +37,13 @@ public:
 
     [[nodiscard]] FocusManager& GetFocusManager() noexcept { return m_focusMgr; }
 
+    [[nodiscard]] DialogManager& Dialogs() const noexcept { return *m_dialogs; }
+
     void OnMouseMove(float x, float y) noexcept;
     void OnMouseDown(float x, float y, Input::MouseButton button) noexcept;
     void OnMouseUp(float x, float y, Input::MouseButton button) noexcept;
     void OnMouseLeave() noexcept;
+    void OnMouseWheel(float delta, float x, float y) noexcept;
     void OnKeyDown(Input::KeyCode key, bool ctrl, bool shift, bool alt) noexcept;
     void OnTextInput(wchar_t ch) noexcept;
 
@@ -51,6 +56,7 @@ private:
     const Theme::ThemeManager& m_theme;
     Input::InputManager& m_input;
     std::unique_ptr<Element> m_root;
+    std::unique_ptr<DialogManager> m_dialogs;
     FocusManager m_focusMgr;
     float m_dpiScale{1.0f};
     float m_viewportW{};

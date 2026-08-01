@@ -1,4 +1,5 @@
 #include <DragonUI/Core/WindowHost.hpp>
+#include <DragonUI/Dialogs/DialogManager.hpp>
 #include <algorithm>
 
 namespace DragonOS::DragonUI {
@@ -10,6 +11,7 @@ WindowHost::WindowHost(
     : m_renderer(renderer)
     , m_theme(theme)
     , m_input(input)
+    , m_dialogs(std::make_unique<DialogManager>())
 {
 }
 
@@ -45,16 +47,21 @@ void WindowHost::Resize(float width, float height) noexcept
     m_viewportH = height;
     if (m_root)
         m_root->InvalidateLayout();
+    if (m_dialogs)
+        m_dialogs->SetViewport(width, height);
 }
 
 void WindowHost::Update(float deltaTime) noexcept
 {
-    (void)deltaTime;
-    if (!m_root) return;
+    if (m_root)
+    {
+        LayoutSlot viewport{0, 0, m_viewportW, m_viewportH};
+        m_root->Measure(viewport);
+        m_root->Arrange(viewport);
+    }
 
-    LayoutSlot viewport{0, 0, m_viewportW, m_viewportH};
-    m_root->Measure(viewport);
-    m_root->Arrange(viewport);
+    if (m_dialogs)
+        m_dialogs->Update(deltaTime, m_focusMgr);
 }
 
 void WindowHost::Render() noexcept
@@ -63,6 +70,9 @@ void WindowHost::Render() noexcept
 
     RenderContext ctx(m_renderer, m_theme, m_dpiScale);
     m_root->Render(ctx);
+
+    if (m_dialogs && !m_dialogs->IsEmpty())
+        m_dialogs->Render(ctx, m_viewportW, m_viewportH);
 }
 
 // ── Hit testing ──────────────────────────────────────────────────────
@@ -113,15 +123,32 @@ void WindowHost::UpdateHover(float x, float y) noexcept
 
 // ── Input handlers ───────────────────────────────────────────────────
 
+namespace {
+bool IsCtrlHeld(const Input::InputManager& input) noexcept
+{
+    return input.IsKeyHeld(Input::KeyCode::LControl) || input.IsKeyHeld(Input::KeyCode::RControl);
+}
+bool IsShiftHeld(const Input::InputManager& input) noexcept
+{
+    return input.IsKeyHeld(Input::KeyCode::LShift) || input.IsKeyHeld(Input::KeyCode::RShift);
+}
+bool IsAltHeld(const Input::InputManager& input) noexcept
+{
+    return input.IsKeyHeld(Input::KeyCode::LAlt) || input.IsKeyHeld(Input::KeyCode::RAlt);
+}
+} // namespace
+
 void WindowHost::OnMouseMove(float x, float y) noexcept
 {
     if (!m_root) return;
+    if (m_dialogs && m_dialogs->HandleMouseMove(x, y)) return;
     UpdateHover(x, y);
 }
 
 void WindowHost::OnMouseDown(float x, float y, Input::MouseButton button) noexcept
 {
     if (!m_root) return;
+    if (m_dialogs && m_dialogs->HandleMouseDown(x, y, button)) return;
 
     m_pressed = HitTestControl(x, y);
 
@@ -132,13 +159,19 @@ void WindowHost::OnMouseDown(float x, float y, Input::MouseButton button) noexce
         if (m_pressed->IsFocusable())
             m_focusMgr.SetFocus(m_pressed);
 
-        DispatchEvent(m_pressed, EventArgs::MakeMouse(EventType::MouseDown, x, y, button));
+        auto args = EventArgs::MakeMouse(EventType::MouseDown, x, y, button);
+        args.mouse.ctrl = IsCtrlHeld(m_input);
+        args.mouse.shift = IsShiftHeld(m_input);
+        args.mouse.alt = IsAltHeld(m_input);
+        DispatchEvent(m_pressed, args);
     }
 }
 
 void WindowHost::OnMouseUp(float x, float y, Input::MouseButton button) noexcept
 {
-    if (!m_root || !m_pressed) return;
+    if (!m_root) return;
+    if (m_dialogs && m_dialogs->HandleMouseUp(x, y, button)) return;
+    if (!m_pressed) return;
 
     auto* releaseTarget = m_pressed;
     m_pressed = nullptr;
@@ -146,10 +179,20 @@ void WindowHost::OnMouseUp(float x, float y, Input::MouseButton button) noexcept
     releaseTarget->SetControlState(
         releaseTarget == HitTestControl(x, y) ? ControlState::Hover : ControlState::Normal);
 
-    DispatchEvent(releaseTarget, EventArgs::MakeMouse(EventType::MouseUp, x, y, button));
+    auto upArgs = EventArgs::MakeMouse(EventType::MouseUp, x, y, button);
+    upArgs.mouse.ctrl = IsCtrlHeld(m_input);
+    upArgs.mouse.shift = IsShiftHeld(m_input);
+    upArgs.mouse.alt = IsAltHeld(m_input);
+    DispatchEvent(releaseTarget, upArgs);
 
     if (HitTestControl(x, y) == releaseTarget)
-        DispatchEvent(releaseTarget, EventArgs::MakeMouse(EventType::Click, x, y, button));
+    {
+        auto clickArgs = EventArgs::MakeMouse(EventType::Click, x, y, button);
+        clickArgs.mouse.ctrl = IsCtrlHeld(m_input);
+        clickArgs.mouse.shift = IsShiftHeld(m_input);
+        clickArgs.mouse.alt = IsAltHeld(m_input);
+        DispatchEvent(releaseTarget, clickArgs);
+    }
 }
 
 void WindowHost::OnMouseLeave() noexcept
@@ -163,8 +206,26 @@ void WindowHost::OnMouseLeave() noexcept
     m_pressed = nullptr;
 }
 
+void WindowHost::OnMouseWheel(float delta, float x, float y) noexcept
+{
+    if (!m_root) return;
+    if (m_dialogs && m_dialogs->HandleMouseWheel(delta, x, y)) return;
+
+    auto* target = HitTestControl(x, y);
+    if (!target) target = m_hovered;
+    if (!target) return;
+
+    auto args = EventArgs::MakeMouse(EventType::MouseMove, x, y);
+    args.mouse.wheelDelta = delta;
+    args.mouse.ctrl = IsCtrlHeld(m_input);
+    args.mouse.shift = IsShiftHeld(m_input);
+    DispatchEvent(target, args);
+}
+
 void WindowHost::OnKeyDown(Input::KeyCode key, bool ctrl, bool shift, bool alt) noexcept
 {
+    if (m_dialogs && m_dialogs->HandleKey(key, ctrl, shift, alt)) return;
+
     auto* focused = m_focusMgr.GetFocused();
     if (!focused) return;
 
@@ -191,6 +252,8 @@ void WindowHost::OnKeyDown(Input::KeyCode key, bool ctrl, bool shift, bool alt) 
 
 void WindowHost::OnTextInput(wchar_t ch) noexcept
 {
+    if (m_dialogs && m_dialogs->HandleText(ch)) return;
+
     auto* focused = m_focusMgr.GetFocused();
     if (!focused) return;
 

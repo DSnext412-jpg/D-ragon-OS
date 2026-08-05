@@ -63,13 +63,6 @@ public:
 
     void SetAsyncValidator(AsyncValidator validator) noexcept { m_asyncValidator = std::move(validator); }
 
-    // ── Accessibility ───────────────────────────────────────────────────
-
-    void SetAccessibleName(std::wstring_view name) noexcept { m_accessibleName = name; }
-    [[nodiscard]] const std::wstring& GetAccessibleName() const noexcept { return m_accessibleName; }
-    void SetAccessibleDescription(std::wstring_view desc) noexcept { m_accessibleDescription = desc; }
-    [[nodiscard]] const std::wstring& GetAccessibleDescription() const noexcept { return m_accessibleDescription; }
-
     // ── Layout & Rendering ──────────────────────────────────────────────
 
     DesiredSize MeasureOverride(const LayoutSlot& available) noexcept override;
@@ -116,9 +109,6 @@ private:
     size_t m_maxLength{256};
     bool m_readOnly{};
     bool m_passwordMode{};
-
-    std::wstring m_accessibleName;
-    std::wstring m_accessibleDescription;
 
     TextChangedCallback m_onTextChanged;
     std::shared_ptr<Validator> m_validator;

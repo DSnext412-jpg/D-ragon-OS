@@ -12,6 +12,7 @@
 #include <DragonOS/Menu.hpp>
 #include <DragonOS/Dialog.hpp>
 #include <DragonOS/Events.hpp>
+#include <DragonOS/Accessibility.hpp>
 #include <DragonOS/Application.hpp>
 #include <DragonOS/PluginAPI.hpp>
 

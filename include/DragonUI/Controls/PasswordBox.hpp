@@ -31,10 +31,6 @@ public:
     void SetValidator(std::shared_ptr<Validator> validator) noexcept;
     ValidationResult Validate() const noexcept;
 
-    void SetAccessibleName(std::wstring_view name) noexcept { m_accessibleName = name; }
-    [[nodiscard]] const std::wstring& GetAccessibleName() const noexcept { return m_accessibleName; }
-    void SetAccessibleDescription(std::wstring_view desc) noexcept { m_accessibleDescription = desc; }
-
     DesiredSize MeasureOverride(const LayoutSlot& available) noexcept override;
     void Render(RenderContext& ctx) noexcept override;
 
@@ -55,9 +51,6 @@ private:
     size_t m_cursorPos{};
     size_t m_maxLength{256};
     bool m_showPassword{};
-
-    std::wstring m_accessibleName;
-    std::wstring m_accessibleDescription;
 
     std::function<void(UIPasswordBox&)> m_onTextChanged;
     PasswordStrengthCallback m_strengthCb;

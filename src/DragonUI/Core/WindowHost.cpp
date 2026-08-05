@@ -1,22 +1,27 @@
 #include <DragonUI/Core/WindowHost.hpp>
 #include <DragonUI/Dialogs/DialogManager.hpp>
+#include <DragonUI/Controls/Button.hpp>
 #include <algorithm>
 
 namespace DragonOS::DragonUI {
 
 WindowHost::WindowHost(
     Graphics::Renderer& renderer,
-    const Theme::ThemeManager& theme,
+    Theme::ThemeManager& theme,
     Input::InputManager& input) noexcept
     : m_renderer(renderer)
     , m_theme(theme)
     , m_input(input)
     , m_dialogs(std::make_unique<DialogManager>())
 {
+    m_accessibility.Initialize(m_root.get(), &m_focusMgr, &m_theme);
+    m_focusMgr.SetOnFocusChanged(
+        [this](Control* focused) { OnFocusChanged(focused); });
 }
 
 WindowHost::~WindowHost() noexcept
 {
+    m_accessibility.Shutdown();
     if (m_root)
     {
         m_focusMgr.UnregisterRoot(dynamic_cast<Container*>(m_root.get()));
@@ -32,6 +37,18 @@ void WindowHost::SetRoot(std::unique_ptr<Element> root) noexcept
 
     if (auto* container = dynamic_cast<Container*>(m_root.get()))
         m_focusMgr.RegisterRoot(container);
+
+    m_accessibility.SetRoot(m_root.get());
+}
+
+void WindowHost::OnFocusChanged(Control* focused) noexcept
+{
+    m_accessibility.ReportFocus(focused);
+    if (m_inspector)
+    {
+        m_inspector->SetFocusedElement(focused);
+        m_inspector->Refresh();
+    }
 }
 
 void WindowHost::SetDpiScale(float scale) noexcept
@@ -226,9 +243,16 @@ void WindowHost::OnKeyDown(Input::KeyCode key, bool ctrl, bool shift, bool alt) 
 {
     if (m_dialogs && m_dialogs->HandleKey(key, ctrl, shift, alt)) return;
 
-    auto* focused = m_focusMgr.GetFocused();
-    if (!focused) return;
+    // ── Developer shortcut: toggle the Accessibility Inspector ────────
+    if (ctrl && shift && key == Input::KeyCode::A)
+    {
+        ToggleInspector();
+        return;
+    }
 
+    auto* focused = m_focusMgr.GetFocused();
+
+    // ── Tab order navigation ───────────────────────────────────────────
     if (key == Input::KeyCode::Tab)
     {
         if (shift)
@@ -236,6 +260,25 @@ void WindowHost::OnKeyDown(Input::KeyCode key, bool ctrl, bool shift, bool alt) 
         else
             m_focusMgr.FocusNext();
         return;
+    }
+
+    // ── Access keys (Alt + letter/digit) ───────────────────────────────
+    if (alt)
+    {
+        wchar_t accessKey = 0;
+        if (key >= Input::KeyCode::A && key <= Input::KeyCode::Z)
+            accessKey = static_cast<wchar_t>(static_cast<uint32_t>(key) - static_cast<uint32_t>(Input::KeyCode::A) + L'A');
+        else if (key >= Input::KeyCode::D0 && key <= Input::KeyCode::D9)
+            accessKey = static_cast<wchar_t>(static_cast<uint32_t>(key) - static_cast<uint32_t>(Input::KeyCode::D0) + L'0');
+
+        if (accessKey != 0)
+        {
+            if (Control* hit = m_focusMgr.FindByAccessKey(accessKey))
+            {
+                m_focusMgr.SetFocus(hit);
+                return;
+            }
+        }
     }
 
     KeyEventArgs args;
@@ -247,7 +290,29 @@ void WindowHost::OnKeyDown(Input::KeyCode key, bool ctrl, bool shift, bool alt) 
     EventArgs evt;
     evt.type = EventType::KeyDown;
     evt.key = args;
-    DispatchEvent(focused, evt);
+
+    // Let the focused control process the key first (e.g. arrow keys move
+    // the text caret inside a text box).
+    bool handled = false;
+    if (focused)
+        handled = focused->OnEvent(evt);
+
+    // ── Logical navigation fallback ────────────────────────────────────
+    if (!handled)
+    {
+        switch (key)
+        {
+        case Input::KeyCode::Up:    m_focusMgr.MoveFocusDirection(FocusDirection::Up);    break;
+        case Input::KeyCode::Down:  m_focusMgr.MoveFocusDirection(FocusDirection::Down);  break;
+        case Input::KeyCode::Left:  m_focusMgr.MoveFocusDirection(FocusDirection::Left);  break;
+        case Input::KeyCode::Right: m_focusMgr.MoveFocusDirection(FocusDirection::Right); break;
+        case Input::KeyCode::Return:
+            m_focusMgr.ActivateFocused();
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 void WindowHost::OnTextInput(wchar_t ch) noexcept
@@ -261,6 +326,56 @@ void WindowHost::OnTextInput(wchar_t ch) noexcept
     evt.type = EventType::TextInput;
     evt.key = {Input::KeyCode::Unknown, ch};
     DispatchEvent(focused, evt);
+}
+
+// ── Accessibility Inspector (developer tool) ──────────────────────────────
+
+void WindowHost::ToggleInspector() noexcept
+{
+    if (m_inspector)
+    {
+        // Remove the inspector view from the tree, then destroy it.
+        auto* view = m_inspector->GetView();
+        if (auto* container = dynamic_cast<Container*>(m_root.get()))
+            container->RemoveChild(view);
+        m_inspector.reset();
+        m_accessibility.ReportStructuredChange();
+        return;
+    }
+
+    m_inspector = std::make_unique<AccessibilityInspector>(m_accessibility);
+    auto view = m_inspector->CreateView();
+    if (!view)
+    {
+        m_inspector.reset();
+        return;
+    }
+
+    auto* container = dynamic_cast<Container*>(m_root.get());
+    if (!container)
+    {
+        m_inspector.reset();
+        return;
+    }
+
+    container->AddChild(std::move(view));
+    PlaceInspector();
+    m_accessibility.ReportStructuredChange();
+    m_accessibility.ReportFocus(m_focusMgr.GetFocused());
+}
+
+void WindowHost::PlaceInspector() noexcept
+{
+    auto* view = m_inspector ? m_inspector->GetView() : nullptr;
+    if (!view)
+        return;
+
+    const float w = 360.0f;
+    const float margin = 12.0f;
+    const float h = (std::max)(240.0f, m_viewportH - margin * 2.0f);
+    const float y = margin;
+    const float x = m_viewportW - w - margin;
+    view->SetBounds(LayoutSlot{ x, y, w, h });
 }
 
 } // namespace

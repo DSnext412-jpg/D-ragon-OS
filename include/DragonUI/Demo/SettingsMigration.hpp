@@ -13,7 +13,7 @@ class SettingsMigrationSection final {
 public:
     SettingsMigrationSection(
         Graphics::Renderer& renderer,
-        const Theme::ThemeManager& theme,
+        Theme::ThemeManager& theme,
         Input::InputManager& input) noexcept;
 
     void Resize(float width, float height) noexcept;

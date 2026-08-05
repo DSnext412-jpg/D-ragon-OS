@@ -75,3 +75,15 @@
 #include <DragonUI/DataBinding/Validation.hpp>
 #include <DragonUI/DataBinding/ErrorTemplate.hpp>
 #include <DragonUI/DataBinding/ThemeBinding.hpp>
+
+// Accessibility & UI Automation
+#include <DragonUI/Accessibility/AccessibilityRole.hpp>
+#include <DragonUI/Accessibility/AccessibilityState.hpp>
+#include <DragonUI/Accessibility/AccessibilityPreferences.hpp>
+#include <DragonUI/Accessibility/AccessibilityNotification.hpp>
+#include <DragonUI/Accessibility/IAccessible.hpp>
+#include <DragonUI/Accessibility/AccessibleElement.hpp>
+#include <DragonUI/Accessibility/AutomationPeer.hpp>
+#include <DragonUI/Accessibility/UIAAutomationTree.hpp>
+#include <DragonUI/Accessibility/AccessibilityManager.hpp>
+#include <DragonUI/Accessibility/AccessibilityInspector.hpp>

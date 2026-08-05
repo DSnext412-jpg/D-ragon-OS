@@ -53,6 +53,7 @@
 #include <SDK/MenuServiceAdapter.hpp>
 #include <SDK/DialogServiceAdapter.hpp>
 #include <SDK/EventBusAdapter.hpp>
+#include <SDK/AccessibilityServiceAdapter.hpp>
 
 // ============================================================================
 //  Concrete System implementations
@@ -511,6 +512,7 @@ public:
         m_pMenuSvc.reset();
         m_pDlgSvc.reset();
         m_pEvBusAda.reset();
+        m_pAccessibilitySvc.reset();
     }
 
     void Update(float deltaTime) noexcept override
@@ -527,6 +529,13 @@ public:
     {
         m_viewportWidth  = width;
         m_viewportHeight = height;
+    }
+
+    /// @brief  Provide the accessibility manager after DragonUI is initialised.
+    void SetAccessibilityManager(DragonUI::AccessibilityManager& mgr) noexcept
+    {
+        m_pAccessibilitySvc = std::make_unique<SDK::AccessibilityServiceAdapter>(mgr);
+        m_pluginManager.SetAccessibilityService(m_pAccessibilitySvc.get());
     }
 
     Plugins::PluginManager& GetPluginManager() noexcept { return m_pluginManager; }
@@ -553,6 +562,7 @@ private:
     std::unique_ptr<SDK::MenuServiceAdapter>         m_pMenuSvc;
     std::unique_ptr<SDK::DialogServiceAdapter>       m_pDlgSvc;
     std::unique_ptr<SDK::EventBusAdapter>            m_pEvBusAda;
+    std::unique_ptr<SDK::AccessibilityServiceAdapter> m_pAccessibilitySvc;
 
     // Internal system pointers (set externally before Initialize)
     Notifications::NotificationManager* m_pInternalNotifMgr{ nullptr };
@@ -782,6 +792,14 @@ bool Engine::Initialize(
     // Wire PluginManager -> PermissionManager for plugin security validation
     pluginSys->GetPluginManager().SetPermissionManager(
         &securitySys->GetPermissionManager());
+
+    // Wire the DragonUI accessibility manager to the plugin SDK service.
+    if (auto* dragonUI =
+            m_pSystemManager->Find<DragonOS::DragonUI::DragonUISystem>())
+    {
+        pluginSys->SetAccessibilityManager(
+            dragonUI->GetHost().GetAccessibility());
+    }
 
     m_initialized = true;
     return true;

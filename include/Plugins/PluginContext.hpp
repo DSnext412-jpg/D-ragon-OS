@@ -10,6 +10,7 @@
 #include <DragonOS/Menu.hpp>
 #include <DragonOS/Dialog.hpp>
 #include <DragonOS/Events.hpp>
+#include <DragonOS/Accessibility.hpp>
 
 #include <Plugins/PluginMetadata.hpp>
 
@@ -42,6 +43,7 @@ public:
     IWindowService*       GetWindowService()       const noexcept { return m_pWindowService; }
     IMenuService*         GetMenuService()         const noexcept { return m_pMenuService; }
     IDialogService*       GetDialogService()       const noexcept { return m_pDialogService; }
+    IAccessibilityService* GetAccessibilityService() const noexcept { return m_pAccessibilityService; }
     IEventBus*            GetEventBus()            const noexcept { return m_pEventBus; }
 
     void SetNotificationService(INotificationService* s) noexcept { m_pNotificationService = s; }
@@ -53,6 +55,7 @@ public:
     void SetWindowService(IWindowService* s) noexcept { m_pWindowService = s; }
     void SetMenuService(IMenuService* s) noexcept { m_pMenuService = s; }
     void SetDialogService(IDialogService* s) noexcept { m_pDialogService = s; }
+    void SetAccessibilityService(IAccessibilityService* s) noexcept { m_pAccessibilityService = s; }
     void SetEventBus(IEventBus* s) noexcept { m_pEventBus = s; }
 
 private:
@@ -67,6 +70,7 @@ private:
     IWindowService*       m_pWindowService{ nullptr };
     IMenuService*         m_pMenuService{ nullptr };
     IDialogService*       m_pDialogService{ nullptr };
+    IAccessibilityService* m_pAccessibilityService{ nullptr };
     IEventBus*            m_pEventBus{ nullptr };
 };
 

@@ -63,6 +63,7 @@ public:
     void SetWindowService(dragonos::sdk::IWindowService* s) noexcept { m_pWindowService = s; }
     void SetMenuService(dragonos::sdk::IMenuService* s) noexcept { m_pMenuService = s; }
     void SetDialogService(dragonos::sdk::IDialogService* s) noexcept { m_pDialogService = s; }
+    void SetAccessibilityService(dragonos::sdk::IAccessibilityService* s) noexcept { m_pAccessibilityService = s; }
     void SetEventBus(dragonos::sdk::IEventBus* s) noexcept { m_pEventBus = s; }
     void SetPermissionManager(Security::PermissionManager* pm) noexcept { m_pPermissionMgr = pm; }
 
@@ -87,6 +88,7 @@ private:
     dragonos::sdk::IWindowService*       m_pWindowService{ nullptr };
     dragonos::sdk::IMenuService*         m_pMenuService{ nullptr };
     dragonos::sdk::IDialogService*       m_pDialogService{ nullptr };
+    dragonos::sdk::IAccessibilityService* m_pAccessibilityService{ nullptr };
     dragonos::sdk::IEventBus*            m_pEventBus{ nullptr };
     Security::PermissionManager*         m_pPermissionMgr{ nullptr };
 

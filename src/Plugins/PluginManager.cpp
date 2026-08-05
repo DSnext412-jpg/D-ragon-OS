@@ -173,6 +173,7 @@ bool PluginManager::InitializePlugin(
     ctx->SetWindowService(m_pWindowService);
     ctx->SetMenuService(m_pMenuService);
     ctx->SetDialogService(m_pDialogService);
+    ctx->SetAccessibilityService(m_pAccessibilityService);
     ctx->SetEventBus(m_pEventBus);
 
     auto* metaPtr = ctx.get();

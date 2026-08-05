@@ -18,7 +18,7 @@ namespace DragonOS::DragonUI::Demo {
 
 SettingsMigrationSection::SettingsMigrationSection(
     Graphics::Renderer& renderer,
-    const Theme::ThemeManager& theme,
+    Theme::ThemeManager& theme,
     Input::InputManager& input) noexcept
 {
     m_host = std::make_unique<WindowHost>(renderer, theme, input);

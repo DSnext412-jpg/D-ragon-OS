@@ -4,6 +4,8 @@
 #include <DragonUI/Core/Control.hpp>
 #include <DragonUI/Core/FocusManager.hpp>
 #include <DragonUI/Core/RenderContext.hpp>
+#include <DragonUI/Accessibility/AccessibilityManager.hpp>
+#include <DragonUI/Accessibility/AccessibilityInspector.hpp>
 
 #include <Graphics/Renderer.hpp>
 #include <Theme/ThemeManager.hpp>
@@ -17,7 +19,7 @@ class DialogManager;
 
 class WindowHost final {
 public:
-    WindowHost(Graphics::Renderer& renderer, const Theme::ThemeManager& theme, Input::InputManager& input) noexcept;
+    WindowHost(Graphics::Renderer& renderer, Theme::ThemeManager& theme, Input::InputManager& input) noexcept;
     ~WindowHost() noexcept;
 
     WindowHost(const WindowHost&) = delete;
@@ -37,6 +39,14 @@ public:
 
     [[nodiscard]] FocusManager& GetFocusManager() noexcept { return m_focusMgr; }
 
+    /// @brief  Accessibility / UI Automation service for this host.
+    [[nodiscard]] AccessibilityManager& GetAccessibility() noexcept { return m_accessibility; }
+    [[nodiscard]] const AccessibilityManager& GetAccessibility() const noexcept { return m_accessibility; }
+
+    /// @brief  Open / close the Accessibility Inspector developer tool.
+    void ToggleInspector() noexcept;
+    [[nodiscard]] bool IsInspectorOpen() const noexcept { return m_inspector != nullptr; }
+
     [[nodiscard]] DialogManager& Dialogs() const noexcept { return *m_dialogs; }
 
     void OnMouseMove(float x, float y) noexcept;
@@ -51,13 +61,17 @@ private:
     Control* HitTestControl(float x, float y) noexcept;
     void DispatchEvent(Control* target, const EventArgs& args) noexcept;
     void UpdateHover(float x, float y) noexcept;
+    void OnFocusChanged(Control* focused) noexcept;
+    void PlaceInspector() noexcept;
 
     Graphics::Renderer& m_renderer;
-    const Theme::ThemeManager& m_theme;
+    Theme::ThemeManager& m_theme;
     Input::InputManager& m_input;
     std::unique_ptr<Element> m_root;
     std::unique_ptr<DialogManager> m_dialogs;
     FocusManager m_focusMgr;
+    AccessibilityManager m_accessibility;
+    std::unique_ptr<AccessibilityInspector> m_inspector;
     float m_dpiScale{1.0f};
     float m_viewportW{};
     float m_viewportH{};

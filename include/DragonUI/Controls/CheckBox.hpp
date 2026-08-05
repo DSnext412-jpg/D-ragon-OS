@@ -29,10 +29,6 @@ public:
 
     void SetOnCheckedChanged(CheckedChangedCallback cb) noexcept { m_onCheckedChanged = std::move(cb); }
 
-    void SetAccessibleName(std::wstring_view name) noexcept { m_accessibleName = name; }
-    [[nodiscard]] const std::wstring& GetAccessibleName() const noexcept { return m_accessibleName; }
-    void SetAccessibleDescription(std::wstring_view desc) noexcept { m_accessibleDescription = desc; }
-
     DesiredSize MeasureOverride(const LayoutSlot& available) noexcept override;
     void Render(RenderContext& ctx) noexcept override;
 
@@ -45,9 +41,6 @@ private:
     std::wstring m_text;
     CheckState m_checkState{CheckState::Unchecked};
     CheckedChangedCallback m_onCheckedChanged;
-
-    std::wstring m_accessibleName;
-    std::wstring m_accessibleDescription;
 
     static constexpr float BoxSize = 18.0f;
     static constexpr float Spacing = 6.0f;

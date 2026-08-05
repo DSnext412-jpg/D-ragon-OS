@@ -40,10 +40,6 @@ public:
 
     void SetOnCheckedChanged(CheckedCallback cb) noexcept { m_onCheckedChanged = std::move(cb); }
 
-    void SetAccessibleName(std::wstring_view name) noexcept { m_accessibleName = name; }
-    [[nodiscard]] const std::wstring& GetAccessibleName() const noexcept { return m_accessibleName; }
-    void SetAccessibleDescription(std::wstring_view desc) noexcept { m_accessibleDescription = desc; }
-
     DesiredSize MeasureOverride(const LayoutSlot& available) noexcept override;
     void Render(RenderContext& ctx) noexcept override;
 
@@ -57,9 +53,6 @@ private:
     bool m_checked{};
     RadioGroup* m_group{};
     CheckedCallback m_onCheckedChanged;
-
-    std::wstring m_accessibleName;
-    std::wstring m_accessibleDescription;
 
     static constexpr float DotSize = 18.0f;
     static constexpr float InnerDotSize = 8.0f;

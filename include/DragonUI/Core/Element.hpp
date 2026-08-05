@@ -3,8 +3,11 @@
 #include <DragonUI/Core/Layout.hpp>
 #include <DragonUI/Core/Event.hpp>
 #include <DragonUI/Core/RenderContext.hpp>
+#include <DragonUI/Accessibility/AccessibilityRole.hpp>
+#include <DragonUI/Accessibility/AccessibilityState.hpp>
 
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace DragonOS::DragonUI {
@@ -95,6 +98,29 @@ public:
     template<typename T>
     [[nodiscard]] T* GetUserData() const noexcept { return static_cast<T*>(m_userData); }
 
+    // ── Accessibility / UI Automation ────────────────────────────────
+
+    // Name / description / automation id / access key metadata.
+    void SetAccessibleName(std::wstring_view name) noexcept { m_accessibleName.assign(name); }
+    [[nodiscard]] const std::wstring& GetAccessibleName() const noexcept { return m_accessibleName; }
+    void SetAccessibleDescription(std::wstring_view desc) noexcept { m_accessibleDescription.assign(desc); }
+    [[nodiscard]] const std::wstring& GetAccessibleDescription() const noexcept { return m_accessibleDescription; }
+    void SetAutomationId(std::wstring_view id) noexcept { m_automationId.assign(id); }
+    [[nodiscard]] const std::wstring& GetAutomationId() const noexcept { return m_automationId; }
+    void SetAccessKey(wchar_t key) noexcept { m_accessKey = key; }
+    [[nodiscard]] wchar_t GetAccessKey() const noexcept { return m_accessKey; }
+
+    // Extension points for applications that want bespoke accessible data.
+    [[nodiscard]] virtual AccessibilityRole GetAccessibleRole() const noexcept
+    {
+        return AccessibilityRole::Unknown;
+    }
+    [[nodiscard]] virtual AccessibilityState GetAccessibleState() const noexcept
+    {
+        return AccessibilityState::None;
+    }
+    [[nodiscard]] virtual std::wstring_view GetAccessibleValue() const noexcept { return {}; }
+
 protected:
     uint64_t m_id;
     LayoutSlot m_bounds;
@@ -111,6 +137,11 @@ protected:
     bool m_layoutDirty{true};
     bool m_visualDirty{true};
     void* m_userData{};
+
+    std::wstring m_accessibleName;
+    std::wstring m_accessibleDescription;
+    std::wstring m_automationId;
+    wchar_t m_accessKey{};
 
 private:
     static uint64_t s_nextId;

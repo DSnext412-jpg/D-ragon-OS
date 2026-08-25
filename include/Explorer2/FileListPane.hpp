@@ -39,9 +39,9 @@ public:
 
     FileListPane() noexcept;
 
-    [[nodiscard]] DragonUI::Element* GetControl() noexcept { return m_root.get(); }
+    [[nodiscard]] DragonOS::DragonUI::Element* GetControl() noexcept { return m_root.get(); }
     /// Transfers the root panel into the owning UI tree (assembly-time).
-    [[nodiscard]] std::unique_ptr<DragonUI::Element> TakeRoot() noexcept
+    [[nodiscard]] std::unique_ptr<DragonOS::DragonUI::Element> TakeRoot() noexcept
     {
         return std::move(m_root);
     }
@@ -58,14 +58,14 @@ public:
     /// External sort change (ribbon / context menu): re-syncs column arrows.
     void NotifySortChanged() noexcept;
 
-    // ── Selection ────────────────────────────────────────────────────────
+    // ── Selection ──────────────────────────────────────────────────────────
 
     [[nodiscard]] std::vector<const FileSystem::FileEntry*> GetSelectedEntries() const noexcept;
     [[nodiscard]] const FileSystem::FileEntry* GetSingleSelectedEntry() const noexcept;
     void ClearSelection() noexcept;
     void SelectAllEntries() noexcept;
 
-    // ── Hit testing ──────────────────────────────────────────────────────
+    // ── Hit testing ────────────────────────────────────────────────────────
 
     /// Entry under an absolute point, or nullptr (background / header).
     [[nodiscard]] const FileSystem::FileEntry* GetEntryAtPoint(float x, float y) const noexcept;
@@ -82,7 +82,7 @@ public:
 
     void SetFocusToList() noexcept;
 
-    [[nodiscard]] DragonUI::UIListView& GetList() noexcept { return *m_list; }
+    [[nodiscard]] DragonOS::DragonUI::UIListView& GetList() noexcept { return *m_list; }
 
 private:
     void ConfigureColumns() noexcept;
@@ -90,13 +90,13 @@ private:
     void RefreshSortIndicators() noexcept;
 
     [[nodiscard]] int ColumnIndexFromLocalX(float localX) const noexcept;
-    [[nodiscard]] static DragonUI::SortDirection ToControlDirection(SortDir dir) noexcept;
+    [[nodiscard]] static DragonOS::DragonUI::SortDirection ToControlDirection(SortDir dir) noexcept;
 
     ExplorerViewModel* m_viewModel{};
-    std::unique_ptr<DragonUI::UIDockPanel> m_root{std::make_unique<DragonUI::UIDockPanel>()};
-    DragonUI::Element* m_releasedRoot{};  ///< Alias kept after TakeRoot.
-    std::shared_ptr<DragonUI::CollectionViewSource<FileRow>> m_source;
-    UIListView* m_list{};  // Raw pointer, owned by m_root child
+    std::unique_ptr<DragonOS::DragonUI::UIDockPanel> m_root{std::make_unique<DragonOS::DragonUI::UIDockPanel>()};
+    DragonOS::DragonUI::Element* m_releasedRoot{};  ///< Alias kept after TakeRoot.
+    std::shared_ptr<DragonOS::DragonUI::CollectionViewSource<FileRow>> m_source;
+    DragonOS::DragonUI::UIListView* m_list{};  // Raw pointer, owned by m_root child
 
     ActivateCallback   m_onActivate;
     SelectionChangedFn m_onSelectionChanged;

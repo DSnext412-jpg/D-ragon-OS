@@ -60,9 +60,9 @@ public:
 
     RibbonBar() noexcept;
 
-    [[nodiscard]] DragonUI::Element* GetControl() noexcept { return m_root.get(); }
+    [[nodiscard]] DragonOS::DragonUI::Element* GetControl() noexcept { return m_root.get(); }
     /// Transfers the root panel into the owning UI tree (assembly-time).
-    [[nodiscard]] std::unique_ptr<DragonUI::Element> TakeRoot() noexcept
+    [[nodiscard]] std::unique_ptr<DragonOS::DragonUI::Element> TakeRoot() noexcept
     {
         return std::move(m_root);
     }
@@ -79,10 +79,10 @@ public:
     void RefreshMenus() noexcept;
 
     void SetSearchText(const std::wstring& text) noexcept { m_searchBox->SetText(text); }
-    [[nodiscard]] DragonUI::Element* GetSearchBox() noexcept { return m_searchBox.get(); }
+    [[nodiscard]] DragonOS::DragonUI::Element* GetSearchBox() noexcept { return m_searchBox.get(); }
 
 private:
-    using MenuPtr = std::unique_ptr<DragonUI::UIMenu>;
+    using MenuPtr = std::unique_ptr<DragonOS::DragonUI::UIMenu>;
 
     [[nodiscard]] MenuPtr BuildViewMenu() const noexcept;
     [[nodiscard]] MenuPtr BuildSortMenu() const noexcept;
@@ -93,19 +93,19 @@ private:
 
     Actions m_actions{};
 
-    std::unique_ptr<DragonUI::Element> m_root{std::make_unique<DragonUI::UIDockPanel>()};
+    std::unique_ptr<DragonOS::DragonUI::Element> m_root{std::make_unique<DragonOS::DragonUI::UIDockPanel>()};
     Element* m_releasedRoot{};  ///< Alias kept after TakeRoot.
 
     // Navigation cluster
-    Element* m_backButton{};
-    Element* m_forwardButton{};
-    Element* m_navHost{};
+    DragonOS::DragonUI::Element* m_backButton{};
+    DragonOS::DragonUI::Element* m_forwardButton{};
+    DragonOS::DragonUI::Element* m_navHost{};
 
     // Action toolbar (fill)
-    Element* m_toolBar{};
+    DragonOS::DragonUI::Element* m_toolBar{};
 
     // Search box
-    std::unique_ptr<DragonUI::Element> m_searchBox;  // UITextBox wrapped in Element
+    std::unique_ptr<DragonOS::DragonUI::Element> m_searchBox;  // UITextBox wrapped in Element
 
     // Action button indices (for state sync)
     size_t m_indexNewFolder{ 0 };

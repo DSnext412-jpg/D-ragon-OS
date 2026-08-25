@@ -43,9 +43,9 @@ public:
         DirectoryCache& cache,
         BookmarkStore& bookmarks) noexcept;
 
-    [[nodiscard]] DragonUI::Element* GetControl() noexcept { return m_root.get(); }
+    [[nodiscard]] DragonOS::DragonUI::Element* GetControl() noexcept { return m_root.get(); }
     /// Transfers the root panel into the owning UI tree (assembly-time).
-    [[nodiscard]] std::unique_ptr<DragonUI::Element> TakeRoot() noexcept
+    [[nodiscard]] std::unique_ptr<DragonOS::DragonUI::Element> TakeRoot() noexcept
     {
         return std::move(m_root);
     }
@@ -65,33 +65,33 @@ public:
 
 private:
     void BuildRoots() noexcept;
-    void LoadDirectoryChildren(DragonUI::UITreeNode& node, const std::wstring& path) noexcept;
+    void LoadDirectoryChildren(DragonOS::DragonUI::UITreeNode& node, const std::wstring& path) noexcept;
 
-    [[nodiscard]] DragonUI::UITreeNode* AddPathNode(
-        DragonUI::UITreeNode& parent, const std::wstring& name,
+    [[nodiscard]] DragonOS::DragonUI::UITreeNode* AddPathNode(
+        DragonOS::DragonUI::UITreeNode& parent, const std::wstring& name,
         const std::wstring& path, uint32_t glyph) noexcept;
 
-    [[nodiscard]] const std::wstring* PathOf(const DragonUI::UITreeNode& node) const noexcept;
-    void StorePath(DragonUI::UITreeNode& node, const std::wstring& path);
+    [[nodiscard]] const std::wstring* PathOf(const DragonOS::DragonUI::UITreeNode& node) const noexcept;
+    void StorePath(DragonOS::DragonUI::UITreeNode& node, const std::wstring& path);
 
     FileSystem::FileSystemService& m_fileSystem;
     DirectoryCache& m_cache;
     BookmarkStore& m_bookmarks;
 
-    std::unique_ptr<DragonUI::UIDockPanel> m_root{std::make_unique<DragonUI::UIDockPanel>()};
-    UITreeView* m_tree{};
-    UITreeNode* m_quickAccessNode{};
-    UITreeNode* m_thisPCNode{};
+    std::unique_ptr<DragonOS::DragonUI::UIDockPanel> m_root{std::make_unique<DragonOS::DragonUI::UIDockPanel>()};
+    DragonOS::DragonUI::UITreeView* m_tree{};
+    DragonOS::DragonUI::UITreeNode* m_quickAccessNode{};
+    DragonOS::DragonUI::UITreeNode* m_thisPCNode{};
 
-    Element* m_layout{};      ///< Stack panel
-    Element* m_pinButton{};   ///< Button
+    DragonOS::DragonUI::Element* m_layout{};      ///< Stack panel
+    DragonOS::DragonUI::Element* m_pinButton{};   ///< Button
 
     NavigateFn m_onNavigate;
     std::function<void()> m_onPinRequested;
 
     /// Node addresses are stable (exclusive unique_ptr ownership); entries
     /// are erased together with the nodes they describe.
-    std::unordered_map<const UITreeNode*, std::wstring> m_nodePaths;
+    std::unordered_map<const DragonOS::DragonUI::UITreeNode*, std::wstring> m_nodePaths;
 
     // Accessibility peers are created by the host's AccessibilityManager
 };

@@ -33,7 +33,7 @@ public:
     /// @return true when this provider can render @p entry.
     [[nodiscard]] virtual bool CanPreview(const FileSystem::FileEntry& entry) noexcept = 0;
     /// Builds the preview content element.  Ownership transfers to the pane.
-    [[nodiscard]] virtual std::unique_ptr<DragonUI::Element> CreatePreview(
+    [[nodiscard]] virtual std::unique_ptr<DragonOS::DragonUI::Element> CreatePreview(
         const FileSystem::FileEntry& entry) noexcept = 0;
 };
 
@@ -41,9 +41,9 @@ class PreviewPane final {
 public:
     PreviewPane() noexcept;
 
-    [[nodiscard]] DragonUI::Element* GetControl() noexcept { return m_root.get(); }
+    [[nodiscard]] DragonOS::DragonUI::Element* GetControl() noexcept { return m_root.get(); }
     /// Transfers the root panel into the owning UI tree (assembly-time).
-    [[nodiscard]] std::unique_ptr<DragonUI::Element> TakeRoot() noexcept
+    [[nodiscard]] std::unique_ptr<DragonOS::DragonUI::Element> TakeRoot() noexcept
     {
         return std::move(m_root);
     }
@@ -61,10 +61,10 @@ private:
     void TryTextPreview(const FileSystem::FileEntry& entry) noexcept;
     void ShowPlaceholder(const std::wstring& message) noexcept;
 
-    std::unique_ptr<DragonUI::Element> m_root{std::make_unique<DragonUI::UIDockPanel>()};
-    Element* m_releasedRoot{};  ///< Alias kept after TakeRoot.
-    Element* m_content{};       ///< Stack panel for content
-    Element* m_titleLabel{};    ///< Title label
+    std::unique_ptr<DragonOS::DragonUI::Element> m_root{std::make_unique<DragonOS::DragonUI::UIDockPanel>()};
+    DragonOS::DragonUI::Element* m_releasedRoot{};  ///< Alias kept after TakeRoot.
+    DragonOS::DragonUI::Element* m_content{};       ///< Stack panel for content
+    DragonOS::DragonUI::Element* m_titleLabel{};    ///< Title label
 
     std::vector<IPreviewProvider*> m_providers;
 

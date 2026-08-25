@@ -16,7 +16,7 @@
 #include <AppRuntime/ApplicationManager.hpp>
 #include <Apps/ApplicationRegistry.hpp>
 #include <Desktop/DesktopManager.hpp>
-#include <Explorer/ExplorerSystem.hpp>
+#include <Explorer2/ExplorerSystem.hpp>
 #include <FileSystem/FileSystemService.hpp>
 #include <Graphics/Renderer.hpp>
 #include <Input/DebugOverlay.hpp>
@@ -629,10 +629,11 @@ bool Engine::Initialize(
     // ── Register FileSystemService (data store, not a visual layer) ──────
     auto* fsService = m_pSystemManager->Register<FileSystem::FileSystemService>();
 
-    // ── Register ExplorerSystem (renders inside window client areas) ────
-    auto* explorerSys = m_pSystemManager->Register<Explorer::ExplorerSystem>(
+    // ── Register ExplorerSystem 2.0 (renders inside window client areas) ─
+    auto* explorerSys = m_pSystemManager->Register<Explorer2::ExplorerSystem>(
         windowManager, *themeMgr, *animMgr, *fsService);
-    explorerSys->SetMouseManager(inputMgr->GetMouseManager());
+    explorerSys->SetMouseManager(&inputMgr->GetMouseManager());
+    explorerSys->SetInputManager(inputMgr);
 
     // ── Register TaskbarSystem (renders above windows, below debug) ──────
     auto* taskbarSys = m_pSystemManager->Register<TaskbarSystem>(

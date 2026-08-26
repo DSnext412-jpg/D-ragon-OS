@@ -6,8 +6,6 @@
 
 ### **Build the Future. One Window at a Time.**
 
-<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=24&duration=3000&pause=1200&color=00F7FF&center=true&vCenter=true&width=950&lines=Booting+D'Ragon+OS...;Loading+Desktop+Environment...;Initializing+Graphics+Engine...;Starting+Window+Manager...;Launching+Dragon+Shell...;System+Ready+✓"/>
-
 <br>
 
 <img src="https://img.shields.io/github/stars/DSnext412-jpg/D-ragon-OS?style=for-the-badge&logo=github"/>
@@ -80,11 +78,6 @@ The vision is to build a beautiful, modular, high-performance desktop platform w
 
 [✓] Dragon Shell Started
 
-═══════════════════════════════════════════════════════════════
-
-SYSTEM STATUS : ONLINE
-
-WELCOME TO D'RAGON OS
 
 ═══════════════════════════════════════════════════════════════
 ```

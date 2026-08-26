@@ -1255,19 +1255,6 @@ The project follows a few simple principles.
 └── Documentation
 ```
 
----
-
-# 📈 GitHub Statistics
-
-<div align="center">
-
-<img height="170" src="https://github-readme-stats.vercel.app/api?username=DSnext412-jpg&show_icons=true&theme=tokyonight&hide_border=true"/>
-
-<img height="170" src="https://github-readme-streak-stats.herokuapp.com/?user=DSnext412-jpg&theme=tokyonight&hide_border=true"/>
-
-</div>
-
----
 
 <div align="center">
 
@@ -1372,24 +1359,6 @@ Feel free to use, modify, and learn from the code while respecting the license t
 
 ---
 
-# 🌐 Connect With Me
-
-<div align="center">
-
-<a href="https://github.com/DSnext412-jpg">
-<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white"/>
-</a>
-
-<a href="https://www.linkedin.com/in/dipak-sonawane-511b5323a/">
-<img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"/>
-</a>
-
-<!-- Replace with your portfolio URL -->
-<a href="https://your-portfolio.vercel.app">
-<img src="https://img.shields.io/badge/Portfolio-00C2FF?style=for-the-badge"/>
-</a>
-
-</div>
 
 ---
 

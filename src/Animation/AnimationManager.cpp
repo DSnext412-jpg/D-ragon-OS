@@ -1,7 +1,4 @@
-/**
- * @file    AnimationManager.cpp
- * @brief   AnimationManager implementation.
- */
+
 
 #include <Animation/AnimationManager.hpp>
 
@@ -40,4 +37,4 @@ void AnimationManager::Clear() noexcept
     m_timeline.Clear();
 }
 
-} // namespace DragonOS::Animation
+} 

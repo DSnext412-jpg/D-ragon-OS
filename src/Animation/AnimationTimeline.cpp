@@ -1,8 +1,3 @@
-/**
- * @file    AnimationTimeline.cpp
- * @brief   AnimationTimeline implementation.
- */
-
 #include <Animation/AnimationTimeline.hpp>
 
 #include <algorithm>
@@ -38,7 +33,6 @@ void AnimationTimeline::Clear() noexcept
 
 void AnimationTimeline::Update(float deltaTime) noexcept
 {
-    // Update every animation.
     for (auto& anim : m_animations)
     {
         if (anim)
@@ -47,7 +41,6 @@ void AnimationTimeline::Update(float deltaTime) noexcept
         }
     }
 
-    // Remove finished non-looping animations.
     m_animations.erase(
         std::remove_if(
             m_animations.begin(), m_animations.end(),
@@ -58,4 +51,4 @@ void AnimationTimeline::Update(float deltaTime) noexcept
         m_animations.end());
 }
 
-} // namespace DragonOS::Animation
+} 

@@ -1,7 +1,3 @@
-/**
- * @file    Easing.cpp
- * @brief   Runtime easing functions (complex curves using std::cmath).
- */
 
 #include <Animation/Easing.hpp>
 
@@ -11,7 +7,6 @@ namespace DragonOS::Animation {
 
 float Easing::Bounce(float t) noexcept
 {
-    // Standard bounce easing.
     constexpr float n1 = 7.5625f;
     constexpr float d1 = 2.75f;
 
@@ -69,4 +64,4 @@ float Easing::Apply(AnimationCurve curve, float t) noexcept
     }
 }
 
-} // namespace DragonOS::Animation
+}

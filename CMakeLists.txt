@@ -1,7 +1,3 @@
-# ============================================================================
-#  DragonOS — Modern Windows desktop environment
-#  CMake build configuration
-# ============================================================================
 
 cmake_minimum_required(VERSION 3.20)
 
@@ -11,72 +7,35 @@ project(DragonOS
     LANGUAGES   CXX
 )
 
-# ---------------------------------------------------------------------------
-#  C++ Standard
-# ---------------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD          20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS        OFF)
 
-# ---------------------------------------------------------------------------
-#  Executable target
-# ---------------------------------------------------------------------------
-# NOTE: GLOB_RECURSE is used for the skeleton; replace with explicit
-# source-file lists in production builds.
 file(GLOB_RECURSE DRAGONOS_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 add_executable(DragonOS WIN32 ${DRAGONOS_SOURCES})
 
-# ---------------------------------------------------------------------------
-#  Resources module — Phase 8A
-#  include/Resources/  (headers)
-#  src/Resources/      (sources, auto-discovered by GLOB_RECURSE below)
-#  No additional libraries required at this phase.
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-#  Theme module — Phase 1 (Theme Engine Foundation)
-#  include/Theme/  (headers)
-#  src/Theme/      (sources, auto-discovered by GLOB_RECURSE below)
-#  No additional libraries required; pure data structures.
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-#  Animation module — Animation Engine Foundation
-#  include/Animation/  (headers)
-#  src/Animation/      (sources, auto-discovered by GLOB_RECURSE below)
-#  No additional libraries required; pure math and state management.
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-#  Include directories
-# ---------------------------------------------------------------------------
 target_include_directories(DragonOS PRIVATE
     "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/sdk"
 )
 
-# ---------------------------------------------------------------------------
-#  Compiler options — MSVC
-# ---------------------------------------------------------------------------
+
 if(MSVC)
     target_compile_options(DragonOS PRIVATE
-        /W4                         # Warning level 4
-        /permissive-                # Strict standards conformance
-        /utf-8                      # Source and execution charsets: UTF-8
-        /Zc:preprocessor            # Conforming preprocessor
-        /Zc:__cplusplus             # Correct __cplusplus value
-        /Zc:throwingNew             # operator new throws on failure
-        /Zc:referenceBinding        # Enforce reference-binding rules
-        /Zc:rvalueCast              # Enforce rvalue-cast rules
-        /EHsc                       # C++ exceptions only (no SEH)
+        /W4                         
+        /permissive-                
+        /utf-8                      
+        /Zc:preprocessor           
+        /Zc:__cplusplus             
+        /Zc:throwingNew             
+        /Zc:referenceBinding       
+        /Zc:rvalueCast              
+        /EHsc                       
     )
 endif()
 
-# ---------------------------------------------------------------------------
-#  Preprocessor definitions
-# ---------------------------------------------------------------------------
 target_compile_definitions(DragonOS PRIVATE
     UNICODE
     _UNICODE
@@ -85,17 +44,11 @@ target_compile_definitions(DragonOS PRIVATE
     _CRT_SECURE_NO_WARNINGS
 )
 
-# ---------------------------------------------------------------------------
-#  Sample plugin (optional)
-# ---------------------------------------------------------------------------
 option(DRAGONOS_BUILD_SAMPLE_PLUGIN "Build the sample plugin" ON)
 if(DRAGONOS_BUILD_SAMPLE_PLUGIN AND EXISTS "${CMAKE_SOURCE_DIR}/plugins/sample/CMakeLists.txt")
     add_subdirectory(plugins/sample)
 endif()
 
-# ---------------------------------------------------------------------------
-#  Linker dependencies — Windows SDK libraries
-# ---------------------------------------------------------------------------
 target_link_libraries(DragonOS PRIVATE
     comctl32
     comdlg32

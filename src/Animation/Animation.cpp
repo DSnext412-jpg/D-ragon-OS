@@ -1,7 +1,4 @@
-/**
- * @file    Animation.cpp
- * @brief   Implementation of the Animation base class.
- */
+
 
 #include <Animation/Animation.hpp>
 
@@ -61,7 +58,6 @@ void Animation::Update(float deltaTime) noexcept
 
     if (m_duration <= 0.0f)
     {
-        // Zero-duration animation — instantly finish.
         if (m_loop)
         {
             OnUpdate(1.0f);
@@ -85,7 +81,6 @@ void Animation::Update(float deltaTime) noexcept
         return;
     }
 
-    // Clamp past the end.
     if (m_elapsed >= m_duration)
     {
         m_elapsed = m_duration;
@@ -95,7 +90,6 @@ void Animation::Update(float deltaTime) noexcept
         return;
     }
 
-    // Normal frame update.
     OnUpdate(GetEasedProgress());
 }
 
@@ -121,4 +115,4 @@ void Animation::OnFinished() noexcept
     }
 }
 
-} // namespace DragonOS::Animation
+} 

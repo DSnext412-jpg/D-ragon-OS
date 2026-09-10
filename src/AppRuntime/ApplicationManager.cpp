@@ -165,4 +165,4 @@ void ApplicationManager::RemoveTerminated() noexcept
     }
 }
 
-} // namespace DragonOS::AppRuntime
+} 

@@ -1,15 +1,3 @@
-/**
- * @file    SamplePlugin.cpp
- * @brief   "Hello DragonOS" sample plugin demonstrating the DragonOS SDK.
- *
- * This plugin shows how to:
- *   - Register with the plugin system
- *   - Create a window
- *   - Send notifications
- *   - Log messages
- *   - Register a Start Menu entry
- *   - Respond to events
- */
 
 #include <DragonOS/DragonOS.hpp>
 
@@ -18,9 +6,6 @@
 #include <cstdio>
 #include <string>
 
-// ============================================================================
-//  HelloApplication — implements the IApplication interface
-// ============================================================================
 
 class HelloApplication final : public dragonos::sdk::IApplication {
 public:
@@ -34,7 +19,6 @@ public:
 
         log.Info(L"HelloDragonOS: Initializing...");
 
-        // ── Store service pointers ────────────────────────────────────────
         m_pNotifications = context.GetNotificationService();
         m_pWindowService = context.GetWindowService();
         m_pMenuService   = context.GetMenuService();
@@ -48,7 +32,6 @@ public:
 
         log.Info(L"HelloDragonOS: All services acquired.");
 
-        // ── Register for events ───────────────────────────────────────────
         if (m_pEventBus)
         {
             m_eventHandlerId = m_pEventBus->Subscribe(
@@ -61,7 +44,6 @@ public:
                 });
         }
 
-        // ── Create a sample window ────────────────────────────────────────
         if (m_pWindowService)
         {
             dragonos::sdk::WindowCreateParams params;
@@ -74,7 +56,7 @@ public:
             if (m_pWindow)
             {
                 m_pWindow->SetOnClose(
-                    [](uint64_t /*windowId*/)
+                    [](uint64_t )
                     {
                         dragonos::sdk::Logger::Get().Info(
                             L"HelloDragonOS: Plugin window closed.");
@@ -84,7 +66,6 @@ public:
             }
         }
 
-        // ── Send a startup notification ───────────────────────────────────
         if (m_pNotifications)
         {
             dragonos::sdk::NotificationData notif;
@@ -97,7 +78,6 @@ public:
             log.Info(L"HelloDragonOS: Startup notification sent.");
         }
 
-        // ── Store config ──────────────────────────────────────────────────
         if (m_pConfig)
         {
             auto& section = m_pConfig->GetSection(L"HelloDragonOS");
@@ -135,7 +115,7 @@ public:
         }
     }
 
-    void Update(float /*deltaTime*/) noexcept override
+    void Update(float ) noexcept override
     {
         m_frameCount++;
 

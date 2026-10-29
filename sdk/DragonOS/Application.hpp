@@ -31,4 +31,4 @@ public:
     virtual const AppMetadata& GetMetadata() const noexcept = 0;
 };
 
-} // namespace dragonos::sdk
+} 

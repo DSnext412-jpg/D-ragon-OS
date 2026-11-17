@@ -29,4 +29,4 @@ public:
     virtual bool IsDarkMode() const noexcept = 0;
 };
 
-} // namespace dragonos::sdk
+}

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <DragonOS/Version.hpp>
 #include <DragonOS/Logging.hpp>
 #include <DragonOS/Notification.hpp>
@@ -15,7 +14,5 @@
 #include <DragonOS/Accessibility.hpp>
 #include <DragonOS/Application.hpp>
 #include <DragonOS/PluginAPI.hpp>
-
-// DragonOS UI Framework - available to SDK consumers
 #include <UI/UI.hpp>
 #include <DragonOS/DragonUI.hpp>

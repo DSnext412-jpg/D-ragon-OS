@@ -59,4 +59,4 @@ public:
     virtual InputEventData GetEvent(size_t index) const noexcept = 0;
 };
 
-} // namespace dragonos::sdk
+}
